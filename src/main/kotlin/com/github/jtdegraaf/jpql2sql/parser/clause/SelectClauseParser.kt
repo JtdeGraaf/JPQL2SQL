@@ -61,6 +61,12 @@ class SelectClauseParser(
             return FieldProjection(funcExpr, alias)
         }
 
+        if (ctx.check(TokenType.CASE)) {
+            val caseExpr = expr.parseExpression()
+            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
+            return FieldProjection(caseExpr, alias)
+        }
+
         val path = expr.parsePathExpression()
         val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
         return FieldProjection(path, alias)

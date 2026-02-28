@@ -81,10 +81,16 @@ class ExpressionParser(
         if (notIn) ctx.advance()
         if (ctx.match(TokenType.IN)) {
             ctx.expect(TokenType.LPAREN)
+            val operator = if (notIn) BinaryOperator.NOT_IN else BinaryOperator.IN
+            if (ctx.check(TokenType.SELECT)) {
+                val subquery = subqueryParser()
+                ctx.expect(TokenType.RPAREN)
+                return BinaryExpression(left, operator, SubqueryExpression(subquery))
+            }
             val elements = mutableListOf<Expression>()
             do { elements.add(parseExpression()) } while (ctx.match(TokenType.COMMA))
             ctx.expect(TokenType.RPAREN)
-            return BinaryExpression(left, if (notIn) BinaryOperator.NOT_IN else BinaryOperator.IN, InListExpression(elements))
+            return BinaryExpression(left, operator, InListExpression(elements))
         }
 
         val notBetween = ctx.current.type == TokenType.NOT && ctx.peekNext()?.type == TokenType.BETWEEN

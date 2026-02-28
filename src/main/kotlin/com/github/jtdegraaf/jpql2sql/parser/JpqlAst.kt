@@ -20,7 +20,7 @@ data class SelectClause(
 sealed class Projection : JpqlNode()
 
 data class FieldProjection(
-    val path: PathExpression,
+    val path: Expression,
     val alias: String? = null
 ) : Projection()
 
@@ -168,3 +168,10 @@ data class BetweenExpression(
     val lower: Expression,
     val upper: Expression
 ) : Expression()
+
+data class AggregateExpression(
+    val function: AggregateFunction,
+    val distinct: Boolean,
+    val argument: Expression
+) : Expression()
+

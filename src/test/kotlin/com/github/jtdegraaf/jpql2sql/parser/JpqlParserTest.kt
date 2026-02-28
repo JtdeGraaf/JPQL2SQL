@@ -13,7 +13,7 @@ class JpqlParserTest {
         assertEquals(1, query.select.projections.size)
 
         val projection = query.select.projections[0] as FieldProjection
-        assertEquals(listOf("u"), projection.path.parts)
+        assertEquals(listOf("u"), (projection.path as PathExpression).parts)
 
         assertEquals("User", query.from.entity.name)
         assertEquals("u", query.from.alias)
@@ -25,7 +25,7 @@ class JpqlParserTest {
 
         assertEquals(3, query.select.projections.size)
 
-        val paths = query.select.projections.map { (it as FieldProjection).path.parts }
+        val paths = query.select.projections.map { ((it as FieldProjection).path as PathExpression).parts }
         assertEquals(listOf("u", "id"), paths[0])
         assertEquals(listOf("u", "name"), paths[1])
         assertEquals(listOf("u", "email"), paths[2])

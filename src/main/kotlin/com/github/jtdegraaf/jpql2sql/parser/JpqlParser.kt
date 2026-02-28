@@ -72,6 +72,14 @@ class JpqlParser(input: String) {
             return AggregateProjection(aggregateFunc, distinct, expr, alias)
         }
 
+        // Function calls as projections (e.g. UPPER(u.name), COALESCE(...))
+        if (isFunctionToken(current.type)) {
+            val funcExpr = parseFunctionCall()
+            val alias = if (match(TokenType.AS)) expectIdentifier() else null
+            // Wrap function call in a FieldProjection for backward compatibility
+            return FieldProjection(funcExpr, alias)
+        }
+
         // Regular field projection
         val path = parsePathExpression()
         val alias = if (match(TokenType.AS)) expectIdentifier() else null
@@ -95,11 +103,11 @@ class JpqlParser(input: String) {
 
     private fun parseFromClause(): FromClause {
         expect(TokenType.FROM)
-        val entityName = expectIdentifier()
+        val entityName = expectIdentifierOrKeyword()
         val alias = if (match(TokenType.AS)) {
-            expectIdentifier()
-        } else if (check(TokenType.IDENTIFIER)) {
-            expectIdentifier()
+            expectIdentifierOrKeyword()
+        } else if (check(TokenType.IDENTIFIER) || (current.type.isKeyword() && !isClauseKeyword(current.type))) {
+            expectIdentifierOrKeyword()
         } else {
             entityName.lowercase()
         }
@@ -374,7 +382,7 @@ class JpqlParser(input: String) {
         }
 
         if (check(TokenType.NUMBER_LITERAL)) {
-            val value = current.text.toDoubleOrNull() ?: current.text.toLongOrNull() ?: current.text
+            val value = current.text.toLongOrNull() ?: current.text.toDoubleOrNull() ?: current.text
             advance()
             return LiteralExpression(value, LiteralType.NUMBER)
         }
@@ -407,6 +415,11 @@ class JpqlParser(input: String) {
         // Functions
         if (isFunctionToken(current.type)) {
             return parseFunctionCall()
+        }
+
+        // Aggregate functions in expression context (e.g. HAVING COUNT(u) > 5)
+        if (isAggregateToken(current.type)) {
+            return parseAggregateInExpression()
         }
 
         // CASE expression
@@ -464,8 +477,8 @@ class JpqlParser(input: String) {
     private fun parsePathExpression(): PathExpression {
         val parts = mutableListOf<String>()
 
-        // First part - must be identifier
-        parts.add(expectIdentifier())
+        // First part - identifier or keyword used as entity/field name
+        parts.add(expectIdentifierOrKeyword())
 
         // Additional parts separated by dots
         while (match(TokenType.DOT)) {
@@ -483,9 +496,9 @@ class JpqlParser(input: String) {
 
     private fun parseQualifiedName(): String {
         val parts = mutableListOf<String>()
-        parts.add(expectIdentifier())
+        parts.add(expectIdentifierOrKeyword())
         while (match(TokenType.DOT)) {
-            parts.add(expectIdentifier())
+            parts.add(expectIdentifierOrKeyword())
         }
         return parts.joinToString(".")
     }
@@ -497,6 +510,38 @@ class JpqlParser(input: String) {
         TokenType.CURRENT_DATE, TokenType.CURRENT_TIME, TokenType.CURRENT_TIMESTAMP,
         TokenType.COALESCE, TokenType.NULLIF, TokenType.TREAT
     )
+
+    private fun isAggregateToken(type: TokenType): Boolean = type in listOf(
+        TokenType.COUNT, TokenType.SUM, TokenType.AVG, TokenType.MIN, TokenType.MAX
+    )
+
+    /**
+     * Parse an aggregate function in expression context (e.g. `COUNT(u)` in a HAVING clause).
+     * Returns an [AggregateProjection] wrapped as an [Expression] via [PathExpression].
+     */
+    private fun parseAggregateInExpression(): Expression {
+        val func = when (current.type) {
+            TokenType.COUNT -> AggregateFunction.COUNT
+            TokenType.SUM -> AggregateFunction.SUM
+            TokenType.AVG -> AggregateFunction.AVG
+            TokenType.MIN -> AggregateFunction.MIN
+            TokenType.MAX -> AggregateFunction.MAX
+            else -> throw parseError("Expected aggregate function")
+        }
+        advance()
+        expect(TokenType.LPAREN)
+
+        if (func == AggregateFunction.COUNT && check(TokenType.STAR)) {
+            advance()
+            expect(TokenType.RPAREN)
+            return AggregateExpression(func, false, PathExpression(listOf("*")))
+        }
+
+        val distinct = match(TokenType.DISTINCT)
+        val expr = parseExpression()
+        expect(TokenType.RPAREN)
+        return AggregateExpression(func, distinct, expr)
+    }
 
     private fun check(type: TokenType): Boolean = current.type == type
 
@@ -528,10 +573,38 @@ class JpqlParser(input: String) {
         return advance().text
     }
 
+    /**
+     * Like [expectIdentifier] but also accepts keyword tokens as identifiers.
+     * Used where entity names, aliases, or field names may collide with JPQL
+     * keywords (e.g. entity named "Order" lexes as ORDER token).
+     */
+    private fun expectIdentifierOrKeyword(): String {
+        if (check(TokenType.IDENTIFIER) || current.type.isKeyword()) {
+            return advance().text
+        }
+        throw parseError("Expected identifier but found ${current.type}")
+    }
+
     private fun peekNext(): Token? = if (pos + 1 < tokens.size) tokens[pos + 1] else null
+
+    /**
+     * Returns true if the token type is a structural JPQL clause keyword that should
+     * not be consumed as an alias or entity name in ambiguous positions.
+     */
+    private fun isClauseKeyword(type: TokenType): Boolean = type in CLAUSE_KEYWORDS
 
     private fun parseError(message: String): JpqlParseException =
         JpqlParseException("$message at position ${current.position}")
+
+    companion object {
+        /** Structural keywords that start JPQL clauses and should not be consumed as aliases. */
+        private val CLAUSE_KEYWORDS = setOf(
+            TokenType.SELECT, TokenType.FROM, TokenType.WHERE,
+            TokenType.JOIN, TokenType.INNER, TokenType.LEFT, TokenType.RIGHT,
+            TokenType.ORDER, TokenType.GROUP, TokenType.HAVING,
+            TokenType.ON, TokenType.FETCH, TokenType.EOF
+        )
+    }
 }
 
 class JpqlParseException(message: String) : RuntimeException(message)

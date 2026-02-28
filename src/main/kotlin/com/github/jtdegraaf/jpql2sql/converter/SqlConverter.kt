@@ -62,7 +62,7 @@ class SqlConverter(
     private fun convertProjection(projection: Projection): String {
         return when (projection) {
             is FieldProjection -> {
-                val converted = convertPath(projection.path)
+                val converted = convertExpression(projection.path)
                 if (projection.alias != null) {
                     "$converted AS ${projection.alias}"
                 } else {
@@ -192,6 +192,7 @@ class SqlConverter(
             is SubqueryExpression -> "(${convert(expr.query)})"
             is InListExpression -> convertInList(expr)
             is BetweenExpression -> "${convertExpression(expr.lower)} AND ${convertExpression(expr.upper)}"
+            is AggregateExpression -> convertAggregateExpression(expr)
         }
     }
 
@@ -331,6 +332,13 @@ class SqlConverter(
     private fun convertInList(expr: InListExpression): String {
         val elements = expr.elements.joinToString(", ") { convertExpression(it) }
         return "($elements)"
+    }
+
+    private fun convertAggregateExpression(expr: AggregateExpression): String {
+        val funcName = expr.function.name
+        val distinctStr = if (expr.distinct) "DISTINCT " else ""
+        val arg = convertExpression(expr.argument)
+        return "$funcName($distinctStr$arg)"
     }
 
     private fun inferEntityFromPath(path: PathExpression): String {

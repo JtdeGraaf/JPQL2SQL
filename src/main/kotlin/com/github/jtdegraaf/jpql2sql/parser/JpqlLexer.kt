@@ -283,5 +283,25 @@ enum class TokenType {
     NAMED_PARAM, POSITIONAL_PARAM,
 
     // Special
-    EOF, UNKNOWN
+    EOF, UNKNOWN;
+
+    /**
+     * Returns true if this token type is a keyword or function name that could
+     * also be used as an entity name or field name (e.g. "Order", "Group", "Index").
+     */
+    fun isKeyword(): Boolean = this !in NON_KEYWORD_TOKENS
+
+    companion object {
+        private val NON_KEYWORD_TOKENS = setOf(
+            // Operators
+            EQ, NE, LT, LE, GT, GE, PLUS, MINUS, STAR, SLASH,
+            // Punctuation
+            LPAREN, RPAREN, COMMA, DOT,
+            // Literals and identifiers
+            IDENTIFIER, STRING_LITERAL, NUMBER_LITERAL,
+            NAMED_PARAM, POSITIONAL_PARAM,
+            // Special
+            EOF, UNKNOWN
+        )
+    }
 }

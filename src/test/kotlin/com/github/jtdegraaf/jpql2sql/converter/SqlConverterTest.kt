@@ -275,7 +275,7 @@ class SqlConverterTest {
  * Mock entity resolver for testing without IntelliJ project context.
  * Uses simple snake_case conversion for column and table names.
  */
-class MockEntityResolver : EntityResolver(null!!) {
+class MockEntityResolver : EntityResolver(null) {
     override fun resolveTableName(entityName: String): String {
         return NamingUtils.toSnakeCase(entityName) + "s"
     }
@@ -298,7 +298,7 @@ class MockEntityResolver : EntityResolver(null!!) {
  * Mock entity resolver that simulates JPA annotation-based column resolution
  * matching the BotRating entity with @Column, @JoinColumn, and @Enumerated mappings.
  */
-class BotRatingMockResolver : EntityResolver(null!!) {
+class BotRatingMockResolver : EntityResolver(null) {
 
     // Simulated entity metadata: entity name -> (field name -> column name)
     private val entityColumns = mapOf(

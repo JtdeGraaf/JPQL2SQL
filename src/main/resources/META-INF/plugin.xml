@@ -5,11 +5,27 @@
     <vendor>jtdegraaf</vendor>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.java</depends>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.jtdegraaf.jpql2sql.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.jtdegraaf.jpql2sql.startup.MyProjectActivity" />
+        <projectService serviceImplementation="com.github.jtdegraaf.jpql2sql.services.EntityMappingService"/>
+        <notificationGroup id="JPQL to SQL Notifications" displayType="BALLOON"/>
+        <applicationConfigurable
+                parentId="tools"
+                instance="com.github.jtdegraaf.jpql2sql.settings.JpqlToSqlConfigurable"
+                id="com.github.jtdegraaf.jpql2sql.settings.JpqlToSqlConfigurable"
+                displayName="JPQL to SQL"/>
+        <applicationService serviceImplementation="com.github.jtdegraaf.jpql2sql.settings.JpqlToSqlSettings"/>
     </extensions>
+
+    <actions>
+        <action id="com.github.jtdegraaf.jpql2sql.CopyAsNativeQuery"
+                class="com.github.jtdegraaf.jpql2sql.actions.CopyAsNativeQueryAction"
+                text="Copy as Native Query"
+                description="Convert JPQL query to native SQL and copy to clipboard">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+    </actions>
 </idea-plugin>

@@ -10,7 +10,6 @@
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <projectService serviceImplementation="com.github.jtdegraaf.jpql2sql.services.EntityMappingService"/>
         <notificationGroup id="JPQL to SQL Notifications" displayType="BALLOON"/>
         <applicationConfigurable
                 parentId="tools"

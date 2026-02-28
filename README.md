@@ -18,11 +18,27 @@
 - [ ] Configure the [CODECOV_TOKEN](https://docs.codecov.com/docs/quick-start) secret for automated test coverage reports on PRs
 
 <!-- Plugin description -->
-This Fancy IntelliJ Platform Plugin is going to be your implementation of the brilliant ideas that you have.
+**JPQL2SQL** converts JPQL queries from `@Query` annotations into native SQL — directly in your IDE.
 
-This specific section is a source for the [plugin.xml](/src/main/resources/META-INF/plugin.xml) file which will be extracted by the [Gradle](/build.gradle.kts) during the build process.
+Right-click any `@Query` annotation and instantly copy the equivalent native SQL to your clipboard. The plugin reads your JPA entity mappings (`@Table`, `@Column`, `@JoinColumn`, `@Embedded`, `@JoinTable`, and more) so the generated SQL uses the correct table and column names.
 
-To keep everything working, do not remove `<!-- ... -->` sections. 
+## Features
+
+- **One-click conversion** — right-click a `@Query` annotation → _Copy as Native Query_
+- **JPA-aware** — resolves `@Table`, `@Column`, `@JoinColumn`, `@Embedded`, `@EmbeddedId`, `@AttributeOverride`, and `@JoinTable` annotations from your codebase
+- **Multi-dialect support** — PostgreSQL, MySQL, Oracle, SQL Server, and H2
+- **Full JPQL coverage** — SELECT, JOIN (INNER / LEFT / RIGHT), WHERE, GROUP BY, HAVING, ORDER BY, subqueries, CASE expressions, aggregate functions, BETWEEN, IN, LIKE, IS NULL, and more
+- **Constructor expressions** — `SELECT NEW com.example.Dto(...)` translates to a clean column list
+- **Named and positional parameters** — `:paramName` and `?1` are preserved in the output
+
+## Getting Started
+
+1. Open a repository or Spring Data interface containing a `@Query` annotation
+2. Place your cursor on the annotation
+3. Right-click → **Copy as Native Query**
+4. Paste the native SQL wherever you need it
+
+Configure your preferred SQL dialect under <kbd>Settings</kbd> > <kbd>Tools</kbd> > <kbd>JPQL to SQL</kbd>.
 <!-- Plugin description end -->
 
 ## Installation

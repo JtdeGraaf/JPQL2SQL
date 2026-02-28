@@ -2,6 +2,8 @@ package com.github.jtdegraaf.jpql2sql.converter
 
 import com.github.jtdegraaf.jpql2sql.converter.dialect.MySqlDialect
 import com.github.jtdegraaf.jpql2sql.converter.dialect.PostgreSqlDialect
+import com.github.jtdegraaf.jpql2sql.converter.resolver.JoinInfo
+import com.github.jtdegraaf.jpql2sql.converter.resolver.NamingUtils
 import com.github.jtdegraaf.jpql2sql.parser.JpqlParser
 import org.junit.Assert.*
 import org.junit.Test
@@ -275,28 +277,20 @@ class SqlConverterTest {
  */
 class MockEntityResolver : EntityResolver(null!!) {
     override fun resolveTableName(entityName: String): String {
-        return toSnakeCase(entityName) + "s" // Simple pluralization
+        return NamingUtils.toSnakeCase(entityName) + "s"
     }
 
     override fun resolveColumnName(entityName: String, fieldPath: List<String>): String {
-        return toSnakeCase(fieldPath.last())
+        return NamingUtils.toSnakeCase(fieldPath.last())
     }
 
     override fun resolveJoinTable(entityName: String, fieldName: String): JoinInfo {
-        val targetTable = toSnakeCase(fieldName) + "s"
+        val targetTable = NamingUtils.toSnakeCase(fieldName) + "s"
         return JoinInfo(
-            columnName = toSnakeCase(fieldName) + "_id",
+            columnName = NamingUtils.toSnakeCase(fieldName) + "_id",
             referencedColumnName = "id",
             targetTable = targetTable
         )
-    }
-
-    companion object {
-        fun toSnakeCase(input: String): String {
-            return input.replace(Regex("([a-z])([A-Z])"), "$1_$2")
-                .replace(Regex("([A-Z]+)([A-Z][a-z])"), "$1_$2")
-                .lowercase()
-        }
     }
 }
 
@@ -332,7 +326,7 @@ class BotRatingMockResolver : EntityResolver(null!!) {
     )
 
     override fun resolveTableName(entityName: String): String {
-        return entityTables[entityName] ?: (toSnakeCase(entityName) + "s")
+        return entityTables[entityName] ?: (NamingUtils.toSnakeCase(entityName) + "s")
     }
 
     override fun resolveColumnName(entityName: String, fieldPath: List<String>): String {
@@ -341,24 +335,16 @@ class BotRatingMockResolver : EntityResolver(null!!) {
             val mapped = columns[fieldPath[0]]
             if (mapped != null) return mapped
         }
-        return toSnakeCase(fieldPath.last())
+        return NamingUtils.toSnakeCase(fieldPath.last())
     }
 
     override fun resolveJoinTable(entityName: String, fieldName: String): JoinInfo {
-        val targetTable = toSnakeCase(fieldName) + "s"
+        val targetTable = NamingUtils.toSnakeCase(fieldName) + "s"
         return JoinInfo(
-            columnName = toSnakeCase(fieldName) + "_id",
+            columnName = NamingUtils.toSnakeCase(fieldName) + "_id",
             referencedColumnName = "id",
             targetTable = targetTable
         )
-    }
-
-    companion object {
-        fun toSnakeCase(input: String): String {
-            return input.replace(Regex("([a-z])([A-Z])"), "$1_$2")
-                .replace(Regex("([A-Z]+)([A-Z][a-z])"), "$1_$2")
-                .lowercase()
-        }
     }
 }
 

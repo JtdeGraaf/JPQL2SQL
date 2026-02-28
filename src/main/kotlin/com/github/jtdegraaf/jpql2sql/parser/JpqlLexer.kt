@@ -97,7 +97,7 @@ class JpqlLexer(private val input: String) {
     private fun readIdentifierOrKeyword(): Token {
         val start = pos
         val sb = StringBuilder()
-        while (pos < input.length && (input[pos].isLetterOrDigit() || input[pos] == '_' || input[pos] == '.')) {
+        while (pos < input.length && (input[pos].isLetterOrDigit() || input[pos] == '_')) {
             sb.append(input[pos++])
         }
         val text = sb.toString()

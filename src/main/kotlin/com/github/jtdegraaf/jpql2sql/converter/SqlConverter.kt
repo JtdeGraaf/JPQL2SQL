@@ -105,13 +105,33 @@ class SqlConverter(
         val tableName = entityResolver.resolveTableName(entityName)
 
         // Build join condition
-        val condition = if (join.condition != null) {
-            convertExpression(join.condition)
-        } else {
-            // Default join condition based on path
-            buildDefaultJoinCondition(join.path, join.alias)
+        if (join.condition != null) {
+            val condition = convertExpression(join.condition)
+            return "$joinType $tableName ${join.alias} ON $condition"
         }
 
+        // Check for @JoinTable (many-to-many) – needs intermediate join table
+        if (join.path.parts.size >= 2) {
+            val parentAlias = join.path.parts[0]
+            val fieldName = join.path.parts[1]
+            val parentEntity = aliasToEntity[parentAlias]
+
+            if (parentEntity != null) {
+                val joinInfo = entityResolver.resolveJoinTable(parentEntity, fieldName)
+                if (joinInfo != null && joinInfo.joinTable != null) {
+                    val jtAlias = "${join.alias}_jt"
+                    return buildString {
+                        append("$joinType ${joinInfo.joinTable} $jtAlias")
+                        append(" ON $parentAlias.id = $jtAlias.${joinInfo.columnName}")
+                        append(" $joinType $tableName ${join.alias}")
+                        append(" ON $jtAlias.${joinInfo.inverseColumnName} = ${join.alias}.${joinInfo.referencedColumnName}")
+                    }
+                }
+            }
+        }
+
+        // Default join condition based on path
+        val condition = buildDefaultJoinCondition(join.path, join.alias)
         return "$joinType $tableName ${join.alias} ON $condition"
     }
 

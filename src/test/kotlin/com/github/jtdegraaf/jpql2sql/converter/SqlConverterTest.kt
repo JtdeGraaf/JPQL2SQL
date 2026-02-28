@@ -202,10 +202,76 @@ class SqlConverterTest {
         assertTrue(sql.contains("WHERE"))
         assertTrue(sql.contains("ORDER BY u.name ASC"))
     }
+
+    @Test
+    fun testManyToOneJoinColumnResolution() {
+        // Simulates: @ManyToOne @JoinColumn(name = "bot_id") private Bot bot;
+        val resolver = BotRatingMockResolver()
+        val parser = JpqlParser("SELECT br FROM BotRating br WHERE br.bot = :bot AND br.game = :game")
+        val ast = parser.parse()
+        val converter = SqlConverter(PostgreSqlDialect, resolver)
+        val sql = converter.convert(ast)
+        assertEquals("SELECT br FROM bot_ratings br WHERE (br.bot_id = :bot AND br.game = :game)", sql)
+    }
+
+    @Test
+    fun testColumnNameAnnotationResolution() {
+        // Simulates: @Column(name = "leaderboard_id") private Long leaderboardId;
+        val resolver = BotRatingMockResolver()
+        val parser = JpqlParser("SELECT br FROM BotRating br WHERE br.leaderboardId IS NULL")
+        val ast = parser.parse()
+        val converter = SqlConverter(PostgreSqlDialect, resolver)
+        val sql = converter.convert(ast)
+        assertEquals("SELECT br FROM bot_ratings br WHERE br.leaderboard_id IS NULL", sql)
+    }
+
+    @Test
+    fun testColumnNameWithExplicitNameAnnotation() {
+        // Simulates: @Column(name = "elo_rating") private Integer eloRating;
+        val resolver = BotRatingMockResolver()
+        val parser = JpqlParser("SELECT br.eloRating FROM BotRating br")
+        val ast = parser.parse()
+        val converter = SqlConverter(PostgreSqlDialect, resolver)
+        val sql = converter.convert(ast)
+        assertEquals("SELECT br.elo_rating FROM bot_ratings br", sql)
+    }
+
+    @Test
+    fun testEnumeratedColumnResolution() {
+        // Simulates: @Enumerated(EnumType.STRING) @Column(nullable = false) private Game game;
+        // @Column without name attribute -> fall back to snake_case of field name
+        val resolver = BotRatingMockResolver()
+        val parser = JpqlParser("SELECT br FROM BotRating br WHERE br.game = :game")
+        val ast = parser.parse()
+        val converter = SqlConverter(PostgreSqlDialect, resolver)
+        val sql = converter.convert(ast)
+        assertEquals("SELECT br FROM bot_ratings br WHERE br.game = :game", sql)
+    }
+
+    @Test
+    fun testBotRatingFullQuery() {
+        // Full BotRating query from a real-world scenario
+        val resolver = BotRatingMockResolver()
+        val jpql = """
+            SELECT br FROM BotRating br
+            WHERE br.bot = :bot
+            AND br.game = :game
+            AND (:leaderboardId IS NULL AND br.leaderboardId IS NULL
+                 OR br.leaderboardId = :leaderboardId)
+        """.trimIndent()
+        val parser = JpqlParser(jpql)
+        val ast = parser.parse()
+        val converter = SqlConverter(PostgreSqlDialect, resolver)
+        val sql = converter.convert(ast)
+        assertTrue("bot field should resolve to bot_id", sql.contains("br.bot_id"))
+        assertTrue("game field should resolve to game", sql.contains("br.game"))
+        assertTrue("leaderboardId should resolve to leaderboard_id", sql.contains("br.leaderboard_id"))
+    }
 }
 
 /**
- * Mock entity resolver for testing without IntelliJ project context
+ * Mock entity resolver for testing without IntelliJ project context.
+ * Uses simple snake_case conversion for column and table names.
  */
 class MockEntityResolver : EntityResolver(null!!) {
     override fun resolveTableName(entityName: String): String {
@@ -233,3 +299,66 @@ class MockEntityResolver : EntityResolver(null!!) {
         }
     }
 }
+
+/**
+ * Mock entity resolver that simulates JPA annotation-based column resolution
+ * matching the BotRating entity with @Column, @JoinColumn, and @Enumerated mappings.
+ */
+class BotRatingMockResolver : EntityResolver(null!!) {
+
+    // Simulated entity metadata: entity name -> (field name -> column name)
+    private val entityColumns = mapOf(
+        "BotRating" to mapOf(
+            "id" to "id",
+            "bot" to "bot_id",           // @ManyToOne @JoinColumn(name = "bot_id")
+            "game" to "game",            // @Enumerated @Column(nullable = false) — no name override
+            "leaderboardId" to "leaderboard_id",  // @Column(name = "leaderboard_id")
+            "eloRating" to "elo_rating",          // @Column(name = "elo_rating")
+            "matchesPlayed" to "matches_played",  // @Column(name = "matches_played")
+            "wins" to "wins",
+            "losses" to "losses",
+            "draws" to "draws"
+        ),
+        "User" to emptyMap(),
+        "Order" to emptyMap()
+    )
+
+    private val entityTables = mapOf(
+        "BotRating" to "bot_ratings",
+        "User" to "users",
+        "Order" to "orders",
+        "Bot" to "bots",
+        "Game" to "games"
+    )
+
+    override fun resolveTableName(entityName: String): String {
+        return entityTables[entityName] ?: (toSnakeCase(entityName) + "s")
+    }
+
+    override fun resolveColumnName(entityName: String, fieldPath: List<String>): String {
+        val columns = entityColumns[entityName]
+        if (columns != null && fieldPath.size == 1) {
+            val mapped = columns[fieldPath[0]]
+            if (mapped != null) return mapped
+        }
+        return toSnakeCase(fieldPath.last())
+    }
+
+    override fun resolveJoinTable(entityName: String, fieldName: String): JoinInfo {
+        val targetTable = toSnakeCase(fieldName) + "s"
+        return JoinInfo(
+            columnName = toSnakeCase(fieldName) + "_id",
+            referencedColumnName = "id",
+            targetTable = targetTable
+        )
+    }
+
+    companion object {
+        fun toSnakeCase(input: String): String {
+            return input.replace(Regex("([a-z])([A-Z])"), "$1_$2")
+                .replace(Regex("([A-Z]+)([A-Z][a-z])"), "$1_$2")
+                .lowercase()
+        }
+    }
+}
+

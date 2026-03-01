@@ -48,6 +48,7 @@ dependencies {
         bundledModules(providers.gradleProperty("platformBundledModules").map { it.split(',') })
 
         testFramework(TestFrameworkType.Platform)
+        testFramework(TestFrameworkType.Plugin.Java)
     }
 }
 
@@ -134,6 +135,14 @@ tasks {
 
     publishPlugin {
         dependsOn(patchChangelog)
+    }
+
+    // Disable instrumentation tasks due to JDK compatibility issues
+    named("instrumentCode") {
+        enabled = false
+    }
+    named("instrumentTestCode") {
+        enabled = false
     }
 }
 

@@ -40,6 +40,15 @@ class SelectClauseParser(
             if (aggregateFunc == AggregateFunction.COUNT && ctx.check(TokenType.STAR)) {
                 ctx.advance()
                 ctx.expect(TokenType.RPAREN)
+
+                // Check if this COUNT(*) is part of a comparison expression like COUNT(*) > 0
+                if (isComparisonOperator(ctx.current.type)) {
+                    val countExpr = AggregateExpression(AggregateFunction.COUNT, false, PathExpression(listOf("*")))
+                    val fullExpr = parseRemainingComparison(countExpr)
+                    val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
+                    return FieldProjection(fullExpr, alias)
+                }
+
                 val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
                 return if (alias != null) {
                     AggregateProjection(AggregateFunction.COUNT, false, PathExpression(listOf("*")), alias)
@@ -51,6 +60,15 @@ class SelectClauseParser(
             val distinct = ctx.match(TokenType.DISTINCT)
             val expression = expr.parseExpression()
             ctx.expect(TokenType.RPAREN)
+
+            // Check if this aggregate is part of a comparison expression like COUNT(m) > 0
+            if (isComparisonOperator(ctx.current.type)) {
+                val aggExpr = AggregateExpression(aggregateFunc, distinct, expression)
+                val fullExpr = parseRemainingComparison(aggExpr)
+                val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
+                return FieldProjection(fullExpr, alias)
+            }
+
             val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
             return AggregateProjection(aggregateFunc, distinct, expression, alias)
         }
@@ -70,6 +88,24 @@ class SelectClauseParser(
         val path = expr.parsePathExpression()
         val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
         return FieldProjection(path, alias)
+    }
+
+    private fun isComparisonOperator(type: TokenType): Boolean {
+        return type in setOf(TokenType.EQ, TokenType.NE, TokenType.LT, TokenType.LE, TokenType.GT, TokenType.GE)
+    }
+
+    private fun parseRemainingComparison(left: Expression): Expression {
+        val op = when {
+            ctx.match(TokenType.EQ) -> BinaryOperator.EQ
+            ctx.match(TokenType.NE) -> BinaryOperator.NE
+            ctx.match(TokenType.LT) -> BinaryOperator.LT
+            ctx.match(TokenType.LE) -> BinaryOperator.LE
+            ctx.match(TokenType.GT) -> BinaryOperator.GT
+            ctx.match(TokenType.GE) -> BinaryOperator.GE
+            else -> return left
+        }
+        val right = expr.parseExpression()
+        return BinaryExpression(left, op, right)
     }
 
     private fun parseConstructorProjection(): ConstructorProjection {

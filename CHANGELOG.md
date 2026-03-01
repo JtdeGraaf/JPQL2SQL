@@ -2,6 +2,8 @@
 
 # JPQL2SQL Changelog
 
+## [Unreleased]
+
 ## 1.0.0
 ### Added
 - Convert JPQL `@Query` annotations to native SQL with one click (_Copy as Native Query_)

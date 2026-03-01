@@ -25,8 +25,28 @@ class JoinConverter(
             JoinType.RIGHT -> "RIGHT JOIN"
         }
 
-        val entityName = inferEntityFromPath(join.path)
-        val tableName = entityResolver.resolveTableName(entityName)
+        // Try to resolve join info from the relationship annotation
+        var tableName: String? = null
+        var joinInfo: com.github.jtdegraaf.jpql2sql.converter.resolver.JoinInfo? = null
+
+        if (join.path.parts.size >= 2) {
+            val parentAlias = join.path.parts[0]
+            val fieldName = join.path.parts[1]
+            val parentEntity = aliasToEntity[parentAlias]
+
+            if (parentEntity != null) {
+                joinInfo = entityResolver.resolveJoinTable(parentEntity, fieldName)
+                if (joinInfo != null) {
+                    tableName = joinInfo.targetTable
+                }
+            }
+        }
+
+        // Fallback to inferred entity name
+        if (tableName == null) {
+            val entityName = inferEntityFromPath(join.path)
+            tableName = entityResolver.resolveTableName(entityName)
+        }
 
         // Explicit ON condition
         if (join.condition != null) {
@@ -34,23 +54,21 @@ class JoinConverter(
         }
 
         // @JoinTable (many-to-many)
-        if (join.path.parts.size >= 2) {
+        if (joinInfo != null && joinInfo.joinTable != null) {
             val parentAlias = join.path.parts[0]
-            val fieldName = join.path.parts[1]
-            val parentEntity = aliasToEntity[parentAlias]
-
-            if (parentEntity != null) {
-                val joinInfo = entityResolver.resolveJoinTable(parentEntity, fieldName)
-                if (joinInfo != null && joinInfo.joinTable != null) {
-                    val jtAlias = "${join.alias}_jt"
-                    return buildString {
-                        append("$keyword ${joinInfo.joinTable} $jtAlias")
-                        append(" ON $parentAlias.id = $jtAlias.${joinInfo.columnName}")
-                        append(" $keyword $tableName ${join.alias}")
-                        append(" ON $jtAlias.${joinInfo.inverseColumnName} = ${join.alias}.${joinInfo.referencedColumnName}")
-                    }
-                }
+            val jtAlias = "${join.alias}_jt"
+            return buildString {
+                append("$keyword ${joinInfo.joinTable} $jtAlias")
+                append(" ON $parentAlias.id = $jtAlias.${joinInfo.columnName}")
+                append(" $keyword $tableName ${join.alias}")
+                append(" ON $jtAlias.${joinInfo.inverseColumnName} = ${join.alias}.${joinInfo.referencedColumnName}")
             }
+        }
+
+        // @OneToMany - join from child table back to parent
+        if (joinInfo != null && joinInfo.isOneToMany) {
+            val parentAlias = join.path.parts[0]
+            return "$keyword $tableName ${join.alias} ON ${join.alias}.${joinInfo.columnName} = $parentAlias.id"
         }
 
         // Default FK-based condition

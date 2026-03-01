@@ -22,7 +22,8 @@ class SqlConverter(
         aliasToEntity.clear()
         aliasToEntity[query.from.alias] = query.from.entity.name
         for (join in query.joins) {
-            aliasToEntity[join.alias] = JoinConverter.inferEntityFromPath(join.path)
+            val resolvedEntity = resolveJoinEntityName(join)
+            aliasToEntity[join.alias] = resolvedEntity ?: JoinConverter.inferEntityFromPath(join.path)
         }
 
         exprConverter = ExpressionConverter(dialect, entityResolver, aliasToEntity, ::convert)
@@ -62,6 +63,18 @@ class SqlConverter(
     private fun convertFrom(from: FromClause): String {
         val tableName = entityResolver.resolveTableName(from.entity.name)
         return "FROM $tableName ${from.alias}"
+    }
+
+    /**
+     * Resolve the actual entity name for a JOIN path like `m.participants`.
+     * Uses the parent alias to find the parent entity, then resolves the field's target entity.
+     */
+    private fun resolveJoinEntityName(join: JoinClause): String? {
+        if (join.path.parts.size < 2) return null
+        val parentAlias = join.path.parts[0]
+        val fieldName = join.path.parts[1]
+        val parentEntity = aliasToEntity[parentAlias] ?: return null
+        return entityResolver.resolveTargetEntityName(parentEntity, fieldName)
     }
 
     private fun convertGroupBy(groupBy: GroupByClause): String =

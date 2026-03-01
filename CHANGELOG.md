@@ -13,3 +13,10 @@
 - Constructor expression support (`SELECT NEW ...`)
 - Named (`:param`) and positional (`?1`) parameter preservation
 - Configurable SQL dialect under Settings > Tools > JPQL to SQL
+
+## 1.0.1
+### Fixed
+- Resolved issue with `@OneToMany` relationships not generating correct JOINs in certain edge cases
+
+### Changed
+- Refactored internal tests to make it easier to add new testcases for complex JPQL queries

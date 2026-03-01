@@ -16,23 +16,26 @@ class JoinColumnResolver : ColumnResolver {
     override fun resolve(context: ColumnResolverContext, chain: ColumnResolverChain): ColumnResolution {
         if (!isSingleValuedAssociation(context.members)) return ColumnResolution.Unhandled
 
+        // Get the FK column name
+        val joinColName = findJoinColumnName(context.members)
+            ?: AttributeOverrideHelper.findOverrideColumn(context.fieldName, context.parentAttributeOverrides)
+            ?: (NamingUtils.toSnakeCase(context.fieldName) + "_id")
+
         if (context.remainingPath.isEmpty()) {
             // Path ends at the association → resolve to the FK column
-            val joinColName = findJoinColumnName(context.members)
-            if (joinColName != null) return ColumnResolution.Resolved(joinColName)
-
-            val overrideName = AttributeOverrideHelper.findOverrideColumn(
-                context.fieldName, context.parentAttributeOverrides
-            )
-            if (overrideName != null) return ColumnResolution.Resolved(overrideName)
-
-            return ColumnResolution.Resolved(NamingUtils.toSnakeCase(context.fieldName) + "_id")
-        } else {
-            // Path continues into the target entity → navigate
-            val targetClass = PsiUtils.resolveMemberType(context.members, context.project)
-            val columnName = chain.resolve(targetClass, context.remainingPath, emptyList())
-            return ColumnResolution.Resolved(columnName)
+            return ColumnResolution.Resolved(joinColName)
         }
+
+        // Special case: accessing .id on a FK relationship (e.g., p.bot.id)
+        // This is equivalent to accessing the FK column itself (p.bot_id)
+        if (context.remainingPath == listOf("id")) {
+            return ColumnResolution.Resolved(joinColName)
+        }
+
+        // Path continues into the target entity → navigate
+        val targetClass = PsiUtils.resolveMemberType(context.members, context.project)
+        val columnName = chain.resolve(targetClass, context.remainingPath, emptyList())
+        return ColumnResolution.Resolved(columnName)
     }
 
     private fun isSingleValuedAssociation(members: List<PsiMember>): Boolean {

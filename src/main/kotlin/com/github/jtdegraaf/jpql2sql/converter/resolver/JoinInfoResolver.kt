@@ -27,6 +27,21 @@ class JoinInfoResolver(
         // Check @JoinTable first (for @ManyToMany)
         resolveJoinTable(members, fieldName, field, getter)?.let { return it }
 
+        // Check @OneToMany - resolve target table from collection generic type
+        if (PsiUtils.hasAnyAnnotation(members, JpaAnnotations.ONE_TO_MANY)) {
+            val targetTable = resolveTargetTable(members)
+            if (targetTable != null) {
+                return JoinInfo(
+                    columnName = NamingUtils.toSnakeCase(entityName) + "_id",
+                    referencedColumnName = "id",
+                    targetTable = targetTable,
+                    joinTable = null,
+                    inverseColumnName = null,
+                    isOneToMany = true
+                )
+            }
+        }
+
         // Check @JoinColumn
         val joinColName = JoinColumnResolver.findJoinColumnName(members)
         val referencedCol = JoinColumnResolver.findReferencedColumnName(members) ?: "id"
@@ -104,6 +119,7 @@ data class JoinInfo(
     val referencedColumnName: String,
     val targetTable: String,
     val joinTable: String? = null,
-    val inverseColumnName: String? = null
+    val inverseColumnName: String? = null,
+    val isOneToMany: Boolean = false
 )
 

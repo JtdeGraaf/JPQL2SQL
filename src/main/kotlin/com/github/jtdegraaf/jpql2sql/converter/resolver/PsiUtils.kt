@@ -90,13 +90,11 @@ object PsiUtils {
     }
 
     fun resolveFieldType(field: PsiField, project: Project): PsiClass? {
-        val canonicalText = field.type.canonicalText
-        return resolveClassName(canonicalText, project)
+        return resolveType(field.type, project)
     }
 
     fun resolveMethodReturnType(method: PsiMethod, project: Project): PsiClass? {
-        val canonicalText = method.returnType?.canonicalText ?: return null
-        return resolveClassName(canonicalText, project)
+        return resolveType(method.returnType ?: return null, project)
     }
 
     fun resolveMemberType(members: List<PsiMember>, project: Project): PsiClass? {
@@ -107,6 +105,27 @@ object PsiUtils {
             }
         }
         return null
+    }
+
+    /**
+     * Resolves a [PsiType] to its [PsiClass].
+     * For generic collection types like `List<Entity>`, resolves the type argument instead.
+     */
+    private fun resolveType(type: PsiType, project: Project): PsiClass? {
+        if (type is PsiClassType) {
+            // If the type has generic parameters (e.g. List<Entity>), resolve the first type argument
+            val parameters = type.parameters
+            if (parameters.isNotEmpty()) {
+                val innerType = parameters[0]
+                if (innerType is PsiClassType) {
+                    innerType.resolve()?.let { return it }
+                }
+            }
+            // Otherwise resolve the type itself
+            return type.resolve()
+        }
+        // Fallback: try string-based resolution
+        return resolveClassName(type.canonicalText, project)
     }
 
     private fun resolveClassName(canonicalText: String, project: Project): PsiClass? {

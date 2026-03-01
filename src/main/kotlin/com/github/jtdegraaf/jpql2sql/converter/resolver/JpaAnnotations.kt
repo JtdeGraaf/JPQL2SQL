@@ -49,6 +49,16 @@ object JpaAnnotations {
         "javax.persistence.OneToOne"
     )
 
+    val ONE_TO_MANY = listOf(
+        "jakarta.persistence.OneToMany",
+        "javax.persistence.OneToMany"
+    )
+
+    val MANY_TO_MANY = listOf(
+        "jakarta.persistence.ManyToMany",
+        "javax.persistence.ManyToMany"
+    )
+
     val TABLE = listOf(
         "jakarta.persistence.Table",
         "javax.persistence.Table"

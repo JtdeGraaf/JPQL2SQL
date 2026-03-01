@@ -50,6 +50,22 @@ open class EntityResolver(private val project: Project?) {
         return joinInfoResolver?.resolve(entityName, fieldName)
     }
 
+    /**
+     * Resolves the target entity name for a relationship field.
+     * For example, for `Match.participants` (which is `List<MatchParticipant>`),
+     * this returns `"MatchParticipant"`.
+     *
+     * @return the target entity's simple class name, or `null` if not resolvable
+     */
+    open fun resolveTargetEntityName(parentEntityName: String, fieldName: String): String? {
+        if (project == null) return null
+        val psiClass = findEntity(parentEntityName) ?: return null
+        val members = PsiUtils.findAnnotatedMembers(psiClass, fieldName)
+        if (members.isEmpty()) return null
+        val targetClass = PsiUtils.resolveMemberType(members, project!!) ?: return null
+        return targetClass.name
+    }
+
     // ---- Internal resolution logic ----
 
     private fun findEntity(entityName: String): PsiClass? = entityFinder?.findEntityClass(entityName)

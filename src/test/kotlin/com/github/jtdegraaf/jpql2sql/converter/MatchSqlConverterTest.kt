@@ -45,11 +45,13 @@ class MatchSqlConverterTest : BaseJpaTestCase() {
             AND p1.id != p2.id
         """.trimIndent())
 
+        println("Generated SQL: $sql")
+
         assertTrue("Table should be 'matches'", sql.contains("FROM matches m"))
         assertTrue("game column", sql.contains("m.game = :game"))
         assertTrue("status column", sql.contains("m.status = 'FINISHED'"))
         assertTrue("finished_at column", sql.contains("m.finished_at >= :since"))
-        assertTrue("JOIN to match_participants", sql.contains("JOIN match_participants"))
+        assertTrue("JOIN to match_participants: $sql", sql.contains("JOIN match_participants"))
         assertTrue("p1.bot.id -> p1.bot_id", sql.contains("p1.bot_id = :bot1Id"))
         assertTrue("p2.bot.id -> p2.bot_id", sql.contains("p2.bot_id = :bot2Id"))
         assertTrue("COUNT comparison in SELECT", sql.contains("COUNT(m) > 0"))

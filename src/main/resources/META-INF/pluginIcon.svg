@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#5B8DEF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3D6DD6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="40" height="40" rx="8" ry="8" fill="url(#bg)"/>
+  <text x="20" y="14" font-family="JetBrains Mono,monospace" font-size="8" font-weight="bold" fill="#FFFFFF" text-anchor="middle" dy="0.35em">JPQL</text>
+  <text x="20" y="22" font-family="JetBrains Mono,monospace" font-size="6" fill="#B8D4FF" text-anchor="middle" dy="0.35em">↓</text>
+  <text x="20" y="30" font-family="JetBrains Mono,monospace" font-size="8" font-weight="bold" fill="#FFFFFF" text-anchor="middle" dy="0.35em">SQL</text>
+</svg>

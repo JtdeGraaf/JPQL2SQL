@@ -4,27 +4,37 @@
 
 ## [Unreleased]
 
-## 1.0.3
+## [1.0.3]
+
 ### Changed
+
 - Removed useless parenthesis that got added around conditions
 
-## 1.0.2
+## [1.0.2]
+
 ### Added
+
 - Support for JPQL `FUNCTION('native_name', args...)` syntax to call native database functions
 - Support for `EXISTS` and `NOT EXISTS` expressions
 
 ### Fixed
+
 - Fixed subquery parsing not terminating correctly at closing parenthesis
 
-## 1.0.1
+## [1.0.1]
+
 ### Fixed
+
 - Resolved issue with `@OneToMany` relationships not generating correct JOINs in certain edge cases
 
 ### Changed
+
 - Refactored internal tests to make it easier to add new testcases for complex JPQL queries
 
-## 1.0.0
+## [1.0.0]
+
 ### Added
+
 - Convert JPQL `@Query` annotations to native SQL with one click (_Copy as Native Query_)
 - JPA annotation-aware column resolution: `@Table`, `@Column`, `@JoinColumn`, `@Embedded`, `@EmbeddedId`, `@AttributeOverride`, `@JoinTable`
 - Multi-dialect support: PostgreSQL, MySQL, Oracle, SQL Server, H2
@@ -32,3 +42,9 @@
 - Constructor expression support (`SELECT NEW ...`)
 - Named (`:param`) and positional (`?1`) parameter preservation
 - Configurable SQL dialect under Settings > Tools > JPQL to SQL
+
+[Unreleased]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.0.3...HEAD
+[1.0.3]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.0.2...1.0.3
+[1.0.2]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.0.1...1.0.2
+[1.0.1]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.0.0...1.0.1
+[1.0.0]: https://github.com/JtdeGraaf/JPQL2SQL/commits/1.0.0

@@ -88,7 +88,7 @@ class ExistsSqlConverterTest : BaseJpaTestCase() {
         println("Basic NOT EXISTS: $sql")
         assertNoUnparsed(sql)
         assertEquals(
-            "SELECT d FROM departments d WHERE NOT (EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id))",
+            "SELECT d FROM departments d WHERE NOT EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id)",
             sql
         )
     }
@@ -126,7 +126,7 @@ class ExistsSqlConverterTest : BaseJpaTestCase() {
         println("EXISTS with multiple correlations: $sql")
         assertNoUnparsed(sql)
         assertEquals(
-            "SELECT d FROM departments d WHERE EXISTS (SELECT e FROM employees e WHERE (e.department_id = d.id AND e.salary > 50000))",
+            "SELECT d FROM departments d WHERE EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id AND e.salary > 50000)",
             sql
         )
     }
@@ -145,7 +145,7 @@ class ExistsSqlConverterTest : BaseJpaTestCase() {
         println("EXISTS with AND: $sql")
         assertNoUnparsed(sql)
         assertEquals(
-            "SELECT d FROM departments d WHERE (d.name = 'Engineering' AND EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id))",
+            "SELECT d FROM departments d WHERE d.name = 'Engineering' AND EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id)",
             sql
         )
     }
@@ -160,7 +160,7 @@ class ExistsSqlConverterTest : BaseJpaTestCase() {
         println("EXISTS with OR: $sql")
         assertNoUnparsed(sql)
         assertEquals(
-            "SELECT d FROM departments d WHERE (d.budget > 100000 OR EXISTS (SELECT e FROM employees e WHERE (e.department_id = d.id AND e.salary > 100000)))",
+            "SELECT d FROM departments d WHERE d.budget > 100000 OR EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id AND e.salary > 100000)",
             sql
         )
     }
@@ -175,7 +175,7 @@ class ExistsSqlConverterTest : BaseJpaTestCase() {
         println("NOT EXISTS with other condition: $sql")
         assertNoUnparsed(sql)
         assertEquals(
-            "SELECT d FROM departments d WHERE (d.name IS NOT NULL AND NOT (EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id)))",
+            "SELECT d FROM departments d WHERE d.name IS NOT NULL AND NOT EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id)",
             sql
         )
     }
@@ -194,7 +194,7 @@ class ExistsSqlConverterTest : BaseJpaTestCase() {
         println("Multiple EXISTS: $sql")
         assertNoUnparsed(sql)
         assertEquals(
-            "SELECT d FROM departments d WHERE (EXISTS (SELECT e FROM employees e WHERE (e.department_id = d.id AND e.salary > 50000)) AND EXISTS (SELECT e FROM employees e WHERE (e.department_id = d.id AND e.salary < 30000)))",
+            "SELECT d FROM departments d WHERE EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id AND e.salary > 50000) AND EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id AND e.salary < 30000)",
             sql
         )
     }
@@ -209,7 +209,7 @@ class ExistsSqlConverterTest : BaseJpaTestCase() {
         println("EXISTS and NOT EXISTS: $sql")
         assertNoUnparsed(sql)
         assertEquals(
-            "SELECT d FROM departments d WHERE (EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id) AND NOT (EXISTS (SELECT e FROM employees e WHERE (e.department_id = d.id AND e.salary > 100000))))",
+            "SELECT d FROM departments d WHERE EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id) AND NOT EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id AND e.salary > 100000)",
             sql
         )
     }
@@ -274,7 +274,7 @@ class ExistsSqlConverterTest : BaseJpaTestCase() {
         println("EXISTS with named parameter: $sql")
         assertNoUnparsed(sql)
         assertEquals(
-            "SELECT d FROM departments d WHERE EXISTS (SELECT e FROM employees e WHERE (e.department_id = d.id AND e.salary > :minSalary))",
+            "SELECT d FROM departments d WHERE EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id AND e.salary > :minSalary)",
             sql
         )
     }
@@ -291,7 +291,7 @@ class ExistsSqlConverterTest : BaseJpaTestCase() {
         println("EXISTS with positional parameter: $sql")
         assertNoUnparsed(sql)
         assertEquals(
-            "SELECT d FROM departments d WHERE EXISTS (SELECT e FROM employees e WHERE (e.department_id = d.id AND e.name = ?1))",
+            "SELECT d FROM departments d WHERE EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id AND e.name = ?1)",
             sql
         )
     }
@@ -350,7 +350,7 @@ class ExistsSqlConverterTest : BaseJpaTestCase() {
         println("Multiple EXISTS in SELECT: $sql")
         assertNoUnparsed(sql)
         assertEquals(
-            "SELECT d.name, EXISTS (SELECT e FROM employees e WHERE (e.department_id = d.id AND e.salary > 50000)) AS hasHighEarners, EXISTS (SELECT e FROM employees e WHERE (e.department_id = d.id AND e.salary < 30000)) AS hasLowEarners FROM departments d",
+            "SELECT d.name, EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id AND e.salary > 50000) AS hasHighEarners, EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id AND e.salary < 30000) AS hasLowEarners FROM departments d",
             sql
         )
     }
@@ -378,7 +378,7 @@ class ExistsSqlConverterTest : BaseJpaTestCase() {
         println("NOT EXISTS in SELECT: $sql")
         assertNoUnparsed(sql)
         assertEquals(
-            "SELECT d.name, NOT (EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id)) AS isEmpty FROM departments d",
+            "SELECT d.name, NOT EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id) AS isEmpty FROM departments d",
             sql
         )
     }
@@ -410,7 +410,7 @@ class ExistsSqlConverterTest : BaseJpaTestCase() {
         println("NOT EXISTS with SELECT 1: $sql")
         assertNoUnparsed(sql)
         assertEquals(
-            "SELECT d FROM departments d WHERE NOT (EXISTS (SELECT 1 FROM employees e WHERE e.department_id = d.id))",
+            "SELECT d FROM departments d WHERE NOT EXISTS (SELECT 1 FROM employees e WHERE e.department_id = d.id)",
             sql
         )
     }
@@ -434,7 +434,7 @@ class ExistsSqlConverterTest : BaseJpaTestCase() {
         println("Nested EXISTS: $sql")
         assertNoUnparsed(sql)
         assertEquals(
-            "SELECT d FROM departments d WHERE EXISTS (SELECT e FROM employees e WHERE (e.department_id = d.id AND EXISTS (SELECT o FROM orders o WHERE o.id = e.id)))",
+            "SELECT d FROM departments d WHERE EXISTS (SELECT e FROM employees e WHERE e.department_id = d.id AND EXISTS (SELECT o FROM orders o WHERE o.id = e.id))",
             sql
         )
     }

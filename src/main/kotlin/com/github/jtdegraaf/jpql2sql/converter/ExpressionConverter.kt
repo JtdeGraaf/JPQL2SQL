@@ -37,6 +37,19 @@ class ExpressionConverter(
         is UnparsedFragment -> "/* UNPARSED: ${expr.text} */"
     }
 
+    /**
+     * Converts an expression, wrapping in parentheses only if the child has lower precedence.
+     * OR has lower precedence than AND, so OR needs parens when inside AND.
+     */
+    private fun convertWithPrecedence(expr: Expression, parentOp: BinaryOperator): String {
+        val converted = convert(expr)
+        // Only wrap OR in parentheses when the parent is AND
+        val needsParens = expr is BinaryExpression &&
+            expr.operator == BinaryOperator.OR &&
+            parentOp == BinaryOperator.AND
+        return if (needsParens) "($converted)" else converted
+    }
+
     fun convertPath(path: PathExpression): String {
         if (path.parts.size == 1 && path.parts[0] == "*") return "*"
         if (path.parts.size == 1) return path.parts[0]
@@ -54,12 +67,12 @@ class ExpressionConverter(
     }
 
     private fun convertBinary(expr: BinaryExpression): String {
-        val left = convert(expr.left)
-        val right = convert(expr.right)
+        val left = convertWithPrecedence(expr.left, expr.operator)
+        val right = convertWithPrecedence(expr.right, expr.operator)
 
         return when (expr.operator) {
-            BinaryOperator.AND -> "($left AND $right)"
-            BinaryOperator.OR -> "($left OR $right)"
+            BinaryOperator.AND -> "$left AND $right"
+            BinaryOperator.OR -> "$left OR $right"
             BinaryOperator.EQ -> "$left = $right"
             BinaryOperator.NE -> "$left != $right"
             BinaryOperator.LT -> "$left < $right"
@@ -82,7 +95,12 @@ class ExpressionConverter(
     private fun convertUnary(expr: UnaryExpression): String {
         val operand = convert(expr.operand)
         return when (expr.operator) {
-            UnaryOperator.NOT -> "NOT ($operand)"
+            UnaryOperator.NOT -> {
+                // Only wrap in parentheses if operand is AND/OR expression
+                val needsParens = expr.operand is BinaryExpression &&
+                    (expr.operand as BinaryExpression).operator in listOf(BinaryOperator.AND, BinaryOperator.OR)
+                if (needsParens) "NOT ($operand)" else "NOT $operand"
+            }
             UnaryOperator.MINUS -> "-$operand"
         }
     }

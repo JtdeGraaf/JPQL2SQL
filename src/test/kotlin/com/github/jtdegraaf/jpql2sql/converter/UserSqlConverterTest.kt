@@ -68,12 +68,12 @@ class UserSqlConverterTest : BaseJpaTestCase() {
 
     fun testWhereAnd() {
         val sql = convertWithPostgres("SELECT u FROM User u WHERE u.active = true AND u.age > 18")
-        assertEquals("SELECT u FROM users u WHERE (u.active = TRUE AND u.age > 18)", sql)
+        assertEquals("SELECT u FROM users u WHERE u.active = TRUE AND u.age > 18", sql)
     }
 
     fun testWhereOr() {
         val sql = convertWithPostgres("SELECT u FROM User u WHERE u.admin = true OR u.moderator = true")
-        assertEquals("SELECT u FROM users u WHERE (u.admin = TRUE OR u.moderator = TRUE)", sql)
+        assertEquals("SELECT u FROM users u WHERE u.admin = TRUE OR u.moderator = TRUE", sql)
     }
 
     fun testOrderByAsc() {

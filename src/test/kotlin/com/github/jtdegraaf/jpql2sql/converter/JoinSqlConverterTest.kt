@@ -90,7 +90,7 @@ class JoinSqlConverterTest : BaseJpaTestCase() {
 
         println("Explicit JOIN with complex condition: $sql")
         assertEquals(
-            "SELECT u FROM users u INNER JOIN departments d ON (u.department_id = d.id AND d.name = :deptName)",
+            "SELECT u FROM users u INNER JOIN departments d ON u.department_id = d.id AND d.name = :deptName",
             sql
         )
     }
@@ -250,7 +250,7 @@ class JoinSqlConverterTest : BaseJpaTestCase() {
 
         println("Comma-separated same table: $sql")
         assertEquals(
-            "SELECT p1, p2 FROM match_participants p1, match_participants p2 WHERE (p1.match_id = p2.match_id AND p1.id != p2.id)",
+            "SELECT p1, p2 FROM match_participants p1, match_participants p2 WHERE p1.match_id = p2.match_id AND p1.id != p2.id",
             sql
         )
     }
@@ -263,7 +263,7 @@ class JoinSqlConverterTest : BaseJpaTestCase() {
 
         println("Three comma-separated tables: $sql")
         assertEquals(
-            "SELECT m, p, b FROM matches m, match_participants p, bots b WHERE (p.match_id = m.id AND p.bot_id = b.id)",
+            "SELECT m, p, b FROM matches m, match_participants p, bots b WHERE p.match_id = m.id AND p.bot_id = b.id",
             sql
         )
     }

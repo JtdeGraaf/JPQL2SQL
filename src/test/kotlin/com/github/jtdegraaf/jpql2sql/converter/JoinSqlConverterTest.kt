@@ -1,7 +1,6 @@
 package com.github.jtdegraaf.jpql2sql.converter
 
 import com.github.jtdegraaf.jpql2sql.converter.entities.MatchEntities
-import com.github.jtdegraaf.jpql2sql.converter.entities.UserEntities
 
 /**
  * SQL conversion tests for various JOIN types.

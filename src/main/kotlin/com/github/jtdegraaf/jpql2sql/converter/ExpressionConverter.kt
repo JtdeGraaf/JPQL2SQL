@@ -98,7 +98,7 @@ class ExpressionConverter(
             UnaryOperator.NOT -> {
                 // Only wrap in parentheses if operand is AND/OR expression
                 val needsParens = expr.operand is BinaryExpression &&
-                    (expr.operand as BinaryExpression).operator in listOf(BinaryOperator.AND, BinaryOperator.OR)
+                    expr.operand.operator in listOf(BinaryOperator.AND, BinaryOperator.OR)
                 if (needsParens) "NOT ($operand)" else "NOT $operand"
             }
             UnaryOperator.MINUS -> "-$operand"

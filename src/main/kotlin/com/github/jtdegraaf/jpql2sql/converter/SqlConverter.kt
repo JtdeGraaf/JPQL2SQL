@@ -2,6 +2,7 @@ package com.github.jtdegraaf.jpql2sql.converter
 
 import com.github.jtdegraaf.jpql2sql.converter.dialect.SqlDialect
 import com.github.jtdegraaf.jpql2sql.parser.*
+import com.intellij.openapi.project.Project
 
 /**
  * Orchestrates JPQL→SQL conversion.
@@ -11,7 +12,8 @@ import com.github.jtdegraaf.jpql2sql.parser.*
  */
 class SqlConverter(
     private val dialect: SqlDialect,
-    private val entityResolver: EntityResolver
+    private val entityResolver: EntityResolver,
+    private val project: Project? = null
 ) {
     private val aliasToEntity = mutableMapOf<String, String>()
 
@@ -35,7 +37,7 @@ class SqlConverter(
         exprConverter = ExpressionConverter(dialect, entityResolver, aliasToEntity, ::convert)
         joinConverter = JoinConverter(entityResolver, aliasToEntity, exprConverter)
 
-        return buildString {
+        val sql = buildString {
             append(convertSelect(query.select))
             append(" ").append(convertFrom(query.from))
             for (join in query.joins) { append(" ").append(joinConverter.convert(join)) }
@@ -47,6 +49,8 @@ class SqlConverter(
                 append(" /* UNPARSED: $fragment */")
             }
         }
+
+        return SqlFormatter.format(project, sql)
     }
 
     private fun convertSelect(select: SelectClause): String {

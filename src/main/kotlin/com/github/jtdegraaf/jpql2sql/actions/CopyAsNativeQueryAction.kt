@@ -137,7 +137,7 @@ class CopyAsNativeQueryAction : AnAction() {
         val parser = JpqlParser(jpql)
         val ast = parser.parse()
 
-        val converter = SqlConverter(dialect, entityResolver)
+        val converter = SqlConverter(dialect, entityResolver, project)
         return converter.convert(ast)
     }
 

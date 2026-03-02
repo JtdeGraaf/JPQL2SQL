@@ -59,7 +59,7 @@ class ExpressionConverter(
             BinaryOperator.AND -> "($left AND $right)"
             BinaryOperator.OR -> "($left OR $right)"
             BinaryOperator.EQ -> "$left = $right"
-            BinaryOperator.NE -> "$left <> $right"
+            BinaryOperator.NE -> "$left != $right"
             BinaryOperator.LT -> "$left < $right"
             BinaryOperator.LE -> "$left <= $right"
             BinaryOperator.GT -> "$left > $right"

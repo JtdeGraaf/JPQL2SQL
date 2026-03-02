@@ -44,6 +44,12 @@ enum class AggregateFunction {
 
 data class FromClause(
     val entity: EntityReference,
+    val alias: String,
+    val additionalEntities: List<FromEntry> = emptyList()
+) : JpqlNode()
+
+data class FromEntry(
+    val entity: EntityReference,
     val alias: String
 ) : JpqlNode()
 

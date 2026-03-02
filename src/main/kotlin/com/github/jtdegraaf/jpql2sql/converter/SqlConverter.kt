@@ -21,6 +21,12 @@ class SqlConverter(
     fun convert(query: JpqlQuery): String {
         aliasToEntity.clear()
         aliasToEntity[query.from.alias] = query.from.entity.name
+
+        // Register additional FROM entities (comma-separated)
+        for (entry in query.from.additionalEntities) {
+            aliasToEntity[entry.alias] = entry.entity.name
+        }
+
         for (join in query.joins) {
             val resolvedEntity = resolveJoinEntityName(join)
             aliasToEntity[join.alias] = resolvedEntity ?: JoinConverter.inferEntityFromPath(join.path)
@@ -61,8 +67,15 @@ class SqlConverter(
     }
 
     private fun convertFrom(from: FromClause): String {
-        val tableName = entityResolver.resolveTableName(from.entity.name)
-        return "FROM $tableName ${from.alias}"
+        val firstTable = entityResolver.resolveTableName(from.entity.name)
+        val tables = mutableListOf("$firstTable ${from.alias}")
+
+        for (entry in from.additionalEntities) {
+            val tableName = entityResolver.resolveTableName(entry.entity.name)
+            tables.add("$tableName ${entry.alias}")
+        }
+
+        return "FROM ${tables.joinToString(", ")}"
     }
 
     /**

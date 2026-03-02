@@ -1,6 +1,8 @@
 # JPQL2SQL
 
 ![Build](https://github.com/JtdeGraaf/JPQL2SQL/workflows/Build/badge.svg)
+[![Version](https://img.shields.io/jetbrains/plugin/v/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/30434)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/30434)
 
 <!-- Plugin description -->
 **JPQL2SQL** converts JPQL queries from `@Query` annotations into native SQL — directly in your IDE.

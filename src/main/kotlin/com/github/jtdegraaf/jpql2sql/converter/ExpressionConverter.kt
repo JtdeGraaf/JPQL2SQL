@@ -33,6 +33,7 @@ class ExpressionConverter(
         is InListExpression -> convertInList(expr)
         is BetweenExpression -> "${convert(expr.lower)} AND ${convert(expr.upper)}"
         is AggregateExpression -> convertAggregate(expr)
+        is ExistsExpression -> "EXISTS (${subqueryConverter(expr.subquery)})"
         is UnparsedFragment -> "/* UNPARSED: ${expr.text} */"
     }
 

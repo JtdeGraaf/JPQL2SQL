@@ -183,6 +183,13 @@ data class AggregateExpression(
 ) : Expression()
 
 /**
+ * Represents an EXISTS (subquery) expression.
+ */
+data class ExistsExpression(
+    val subquery: JpqlQuery
+) : Expression()
+
+/**
  * Represents unparsed/unrecognized content that should be passed through as-is.
  * Used for resilient parsing when the parser encounters unexpected syntax.
  */

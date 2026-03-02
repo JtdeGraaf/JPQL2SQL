@@ -184,6 +184,7 @@ class ExpressionParser(
         if (ctx.check(TokenType.NAMED_PARAM)) { val n = ctx.current.text; ctx.advance(); return ParameterExpression(n, null) }
         if (ctx.check(TokenType.POSITIONAL_PARAM)) { val p = ctx.current.text.toIntOrNull() ?: 0; ctx.advance(); return ParameterExpression(null, p) }
 
+        if (ctx.check(TokenType.EXISTS)) return parseExistsExpression()
         if (ctx.check(TokenType.FUNCTION)) return parseJpqlFunction()
         if (isFunctionToken(ctx.current.type)) return parseFunctionCall()
         if (isAggregateToken(ctx.current.type)) return parseAggregateInExpression()
@@ -203,6 +204,17 @@ class ExpressionParser(
         }
         ctx.expect(TokenType.RPAREN)
         return FunctionCallExpression(name, args)
+    }
+
+    /**
+     * Parses EXISTS (SELECT ...) expression.
+     */
+    private fun parseExistsExpression(): ExistsExpression {
+        ctx.expect(TokenType.EXISTS)
+        ctx.expect(TokenType.LPAREN)
+        val subquery = subqueryParser()
+        ctx.expect(TokenType.RPAREN)
+        return ExistsExpression(subquery)
     }
 
     /**

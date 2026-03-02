@@ -91,12 +91,13 @@ class ParseContext(input: String) {
     }
 
     companion object {
-        /** Structural keywords that start JPQL clauses and should not be consumed as aliases. */
+        /** Structural keywords that start JPQL clauses and should not be consumed as aliases.
+         *  RPAREN is included to properly terminate subquery parsing. */
         private val CLAUSE_KEYWORDS = setOf(
             TokenType.SELECT, TokenType.FROM, TokenType.WHERE,
             TokenType.JOIN, TokenType.INNER, TokenType.LEFT, TokenType.RIGHT,
             TokenType.ORDER, TokenType.GROUP, TokenType.HAVING,
-            TokenType.ON, TokenType.FETCH, TokenType.EOF
+            TokenType.ON, TokenType.FETCH, TokenType.EOF, TokenType.RPAREN
         )
     }
 }

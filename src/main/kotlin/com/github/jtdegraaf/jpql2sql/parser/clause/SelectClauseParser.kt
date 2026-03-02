@@ -89,6 +89,20 @@ class SelectClauseParser(
             return FieldProjection(caseExpr, alias)
         }
 
+        // Handle EXISTS and NOT EXISTS in SELECT clause
+        if (ctx.check(TokenType.EXISTS) || (ctx.check(TokenType.NOT) && ctx.peekNext()?.type == TokenType.EXISTS)) {
+            val existsExpr = expr.parseExpression()
+            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
+            return FieldProjection(existsExpr, alias)
+        }
+
+        // Handle literal values (e.g., SELECT 1 FROM ... for EXISTS subqueries)
+        if (ctx.check(TokenType.NUMBER_LITERAL) || ctx.check(TokenType.STRING_LITERAL)) {
+            val literalExpr = expr.parseExpression()
+            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
+            return FieldProjection(literalExpr, alias)
+        }
+
         val path = expr.parsePathExpression()
         val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
         return FieldProjection(path, alias)

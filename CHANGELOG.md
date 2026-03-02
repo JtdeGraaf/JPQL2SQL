@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+## 1.0.3
+### Changed
+- Removed useless parenthesis that got added around conditions
+
 ## 1.0.2
 ### Added
 - Support for JPQL `FUNCTION('native_name', args...)` syntax to call native database functions

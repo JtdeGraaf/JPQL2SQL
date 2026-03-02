@@ -73,8 +73,12 @@ class SelectClauseParser(
             return AggregateProjection(aggregateFunc, distinct, expression, alias)
         }
 
-        if (isFunctionToken(ctx.current.type)) {
-            val funcExpr = expr.parseFunctionCall()
+        if (ctx.check(TokenType.FUNCTION) || isFunctionToken(ctx.current.type)) {
+            val funcExpr = if (ctx.check(TokenType.FUNCTION)) {
+                expr.parseExpression()  // parseExpression will handle FUNCTION token
+            } else {
+                expr.parseFunctionCall()
+            }
             val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
             return FieldProjection(funcExpr, alias)
         }

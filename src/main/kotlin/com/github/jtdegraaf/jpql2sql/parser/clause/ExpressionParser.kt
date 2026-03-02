@@ -184,6 +184,7 @@ class ExpressionParser(
         if (ctx.check(TokenType.NAMED_PARAM)) { val n = ctx.current.text; ctx.advance(); return ParameterExpression(n, null) }
         if (ctx.check(TokenType.POSITIONAL_PARAM)) { val p = ctx.current.text.toIntOrNull() ?: 0; ctx.advance(); return ParameterExpression(null, p) }
 
+        if (ctx.check(TokenType.FUNCTION)) return parseJpqlFunction()
         if (isFunctionToken(ctx.current.type)) return parseFunctionCall()
         if (isAggregateToken(ctx.current.type)) return parseAggregateInExpression()
         if (ctx.check(TokenType.CASE)) return parseCaseExpression()
@@ -202,6 +203,32 @@ class ExpressionParser(
         }
         ctx.expect(TokenType.RPAREN)
         return FunctionCallExpression(name, args)
+    }
+
+    /**
+     * Parses JPQL FUNCTION('native_name', arg1, arg2, ...) syntax.
+     * The first argument is the native function name as a string literal.
+     * Returns a FunctionCallExpression with the native name and remaining args.
+     */
+    private fun parseJpqlFunction(): FunctionCallExpression {
+        ctx.expect(TokenType.FUNCTION)
+        ctx.expect(TokenType.LPAREN)
+
+        // First argument must be the function name as a string literal
+        if (!ctx.check(TokenType.STRING_LITERAL)) {
+            throw ctx.parseError("FUNCTION requires a string literal as the first argument (function name)")
+        }
+        val nativeFunctionName = ctx.current.text
+        ctx.advance()
+
+        // Parse remaining arguments
+        val args = mutableListOf<Expression>()
+        while (ctx.match(TokenType.COMMA)) {
+            args.add(parseExpression())
+        }
+        ctx.expect(TokenType.RPAREN)
+
+        return FunctionCallExpression(nativeFunctionName, args)
     }
 
     private fun parseAggregateInExpression(): Expression {

@@ -9,7 +9,8 @@ data class JpqlQuery(
     val where: WhereClause? = null,
     val groupBy: GroupByClause? = null,
     val having: HavingClause? = null,
-    val orderBy: OrderByClause? = null
+    val orderBy: OrderByClause? = null,
+    val unparsedFragments: List<String> = emptyList()  // Any unparsed content between/after clauses
 ) : JpqlNode()
 
 data class SelectClause(
@@ -179,5 +180,13 @@ data class AggregateExpression(
     val function: AggregateFunction,
     val distinct: Boolean,
     val argument: Expression
+) : Expression()
+
+/**
+ * Represents unparsed/unrecognized content that should be passed through as-is.
+ * Used for resilient parsing when the parser encounters unexpected syntax.
+ */
+data class UnparsedFragment(
+    val text: String
 ) : Expression()
 

@@ -70,10 +70,25 @@ class ParseContext(input: String) {
      */
     fun isClauseKeyword(type: TokenType): Boolean = type in CLAUSE_KEYWORDS
 
-    // ────────────── Error handling ──────────────────────
+    // ────────────── Error handling & recovery ──────────────────────
 
     fun parseError(message: String): JpqlParseException =
         JpqlParseException("$message at position ${current.position}")
+
+    /**
+     * Collects all tokens from the current position until a clause keyword is found.
+     * Returns the collected tokens as a single string (preserving original text).
+     * Used for resilient parsing when unexpected content is encountered.
+     */
+    fun collectUntilClauseKeyword(): String {
+        val collected = StringBuilder()
+        while (!check(TokenType.EOF) && !isClauseKeyword(current.type)) {
+            if (collected.isNotEmpty()) collected.append(" ")
+            collected.append(current.text)
+            advance()
+        }
+        return collected.toString()
+    }
 
     companion object {
         /** Structural keywords that start JPQL clauses and should not be consumed as aliases. */

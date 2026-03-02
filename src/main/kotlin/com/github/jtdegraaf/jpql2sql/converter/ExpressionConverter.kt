@@ -33,6 +33,7 @@ class ExpressionConverter(
         is InListExpression -> convertInList(expr)
         is BetweenExpression -> "${convert(expr.lower)} AND ${convert(expr.upper)}"
         is AggregateExpression -> convertAggregate(expr)
+        is UnparsedFragment -> "/* UNPARSED: ${expr.text} */"
     }
 
     fun convertPath(path: PathExpression): String {

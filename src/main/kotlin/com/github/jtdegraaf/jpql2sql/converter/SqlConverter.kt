@@ -43,6 +43,9 @@ class SqlConverter(
             query.groupBy?.let { append(" ").append(convertGroupBy(it)) }
             query.having?.let { append(" ").append("HAVING ${exprConverter.convert(it.condition)}") }
             query.orderBy?.let { append(" ").append(convertOrderBy(it)) }
+            for (fragment in query.unparsedFragments) {
+                append(" /* UNPARSED: $fragment */")
+            }
         }
     }
 

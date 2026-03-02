@@ -24,15 +24,49 @@ class JpqlParser(input: String) {
     private val orderByParser = OrderByClauseParser(ctx, expr)
 
     fun parse(): JpqlQuery {
-        val select = selectParser.parse()
-        val from = fromParser.parse()
-        val joins = joinParser.parse()
-        val where = if (ctx.check(TokenType.WHERE)) whereParser.parse() else null
-        val groupBy = if (ctx.check(TokenType.GROUP)) groupByParser.parse() else null
-        val having = if (ctx.check(TokenType.HAVING)) havingParser.parse() else null
-        val orderBy = if (ctx.check(TokenType.ORDER)) orderByParser.parse() else null
+        val unparsedFragments = mutableListOf<String>()
 
-        return JpqlQuery(select, from, joins, where, groupBy, having, orderBy)
+        val select = selectParser.parse()
+        collectUnparsedBetweenClauses(unparsedFragments)
+
+        val from = fromParser.parse()
+        collectUnparsedBetweenClauses(unparsedFragments)
+
+        val joins = joinParser.parse()
+        collectUnparsedBetweenClauses(unparsedFragments)
+
+        val where = if (ctx.check(TokenType.WHERE)) {
+            whereParser.parse().also { collectUnparsedBetweenClauses(unparsedFragments) }
+        } else null
+
+        val groupBy = if (ctx.check(TokenType.GROUP)) {
+            groupByParser.parse().also { collectUnparsedBetweenClauses(unparsedFragments) }
+        } else null
+
+        val having = if (ctx.check(TokenType.HAVING)) {
+            havingParser.parse().also { collectUnparsedBetweenClauses(unparsedFragments) }
+        } else null
+
+        val orderBy = if (ctx.check(TokenType.ORDER)) {
+            orderByParser.parse().also { collectUnparsedBetweenClauses(unparsedFragments) }
+        } else null
+
+        // Collect any trailing unparsed content
+        collectUnparsedBetweenClauses(unparsedFragments)
+
+        return JpqlQuery(select, from, joins, where, groupBy, having, orderBy, unparsedFragments)
+    }
+
+    /**
+     * Collects any unparsed tokens until the next clause keyword and adds to the fragments list.
+     */
+    private fun collectUnparsedBetweenClauses(fragments: MutableList<String>) {
+        if (!ctx.check(TokenType.EOF) && !ctx.isClauseKeyword(ctx.current.type)) {
+            val unparsed = ctx.collectUntilClauseKeyword()
+            if (unparsed.isNotBlank()) {
+                fragments.add(unparsed)
+            }
+        }
     }
 }
 

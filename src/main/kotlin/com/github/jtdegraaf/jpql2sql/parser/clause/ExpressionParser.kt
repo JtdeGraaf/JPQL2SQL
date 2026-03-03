@@ -191,7 +191,18 @@ class ExpressionParser(
         if (isAggregateToken(ctx.current.type)) return parseAggregateInExpression()
         if (ctx.check(TokenType.CASE)) return parseCaseExpression()
 
-        return parsePathExpression()
+        val path = parsePathExpression()
+
+        // Check if this is a parameterless native function call: single identifier followed by ()
+        // e.g., SYSDATE() for Oracle's SYSDATE
+        // For native functions WITH arguments, use FUNCTION('name', args...) syntax instead
+        if (path.parts.size == 1 && ctx.check(TokenType.LEFT_PARENTHESES) && ctx.peekNext()?.type == TokenType.RIGHT_PARENTHESES) {
+            ctx.advance() // consume (
+            ctx.advance() // consume )
+            return FunctionCallExpression(path.parts[0].uppercase(), emptyList())
+        }
+
+        return path
     }
 
     fun parseFunctionCall(): FunctionCallExpression {

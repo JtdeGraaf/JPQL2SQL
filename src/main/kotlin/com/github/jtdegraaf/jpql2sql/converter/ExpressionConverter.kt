@@ -145,7 +145,15 @@ class ExpressionConverter(
             "CURRENT_TIMESTAMP" -> dialect.currentTimestamp()
             "COALESCE" -> dialect.coalesce(args)
             "NULLIF" -> if (args.size >= 2) dialect.nullif(args[0], args[1]) else "NULLIF(${args.joinToString(", ")})"
-            else -> "${expr.name}(${args.joinToString(", ")})"
+            else -> {
+                // For parameterless functions, let the dialect decide the output format
+                // (e.g., Oracle's SYSDATE doesn't need parentheses)
+                if (args.isEmpty()) {
+                    dialect.parameterlessFunction(expr.name)
+                } else {
+                    "${expr.name}(${args.joinToString(", ")})"
+                }
+            }
         }
     }
 

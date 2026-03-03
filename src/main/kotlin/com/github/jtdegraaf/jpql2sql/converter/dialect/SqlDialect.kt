@@ -24,6 +24,12 @@ interface SqlDialect {
     fun nullif(expr1: String, expr2: String): String = "NULLIF($expr1, $expr2)"
 
     /**
+     * Converts a parameterless native function call.
+     * Most databases use FUNC() syntax, but Oracle uses FUNC without parentheses for some functions.
+     */
+    fun parameterlessFunction(name: String): String = "$name()"
+
+    /**
      * Maps JPQL abstract types to SQL types for CAST expressions.
      * JPQL types: String, Integer, Long, Float, Double, BigDecimal, BigInteger, Date, Time, Timestamp
      */

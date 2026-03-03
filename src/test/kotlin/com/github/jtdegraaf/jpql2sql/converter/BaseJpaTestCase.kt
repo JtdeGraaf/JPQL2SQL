@@ -1,6 +1,7 @@
 package com.github.jtdegraaf.jpql2sql.converter
 
 import com.github.jtdegraaf.jpql2sql.converter.dialect.MySqlDialect
+import com.github.jtdegraaf.jpql2sql.converter.dialect.OracleDialect
 import com.github.jtdegraaf.jpql2sql.converter.dialect.PostgreSqlDialect
 import com.github.jtdegraaf.jpql2sql.parser.JpqlParser
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
@@ -59,5 +60,11 @@ abstract class BaseJpaTestCase : LightJavaCodeInsightFixtureTestCase() {
         val ast = JpqlParser(jpql).parse()
         val resolver = EntityResolver(project)
         return SqlConverter(MySqlDialect, resolver).convert(ast)
+    }
+
+    protected fun convertWithOracle(jpql: String): String {
+        val ast = JpqlParser(jpql).parse()
+        val resolver = EntityResolver(project)
+        return SqlConverter(OracleDialect, resolver).convert(ast)
     }
 }

@@ -147,6 +147,17 @@ class SelectClauseParser(
         }
 
         val path = expr.parsePathExpression()
+
+        // Check for parameterless native function call: single identifier followed by ()
+        // e.g., SYSDATE() for Oracle - the () signals it's a function, not a field
+        if (path.parts.size == 1 && ctx.check(TokenType.LEFT_PARENTHESES) && ctx.peekNext()?.type == TokenType.RIGHT_PARENTHESES) {
+            ctx.advance() // consume (
+            ctx.advance() // consume )
+            val funcExpr = FunctionCallExpression(path.parts[0].uppercase(), emptyList())
+            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
+            return FieldProjection(funcExpr, alias)
+        }
+
         val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
         return FieldProjection(path, alias)
     }

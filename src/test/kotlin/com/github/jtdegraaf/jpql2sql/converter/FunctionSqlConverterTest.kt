@@ -114,4 +114,96 @@ class FunctionSqlConverterTest : BaseJpaTestCase() {
         println("Standard COALESCE: $sql")
         assertEquals("SELECT COALESCE(u.name, 'Unknown') FROM users u", sql)
     }
+
+    // ═══════════════════════════════════════════════════════
+    //  Parameterless native function calls - e.g., SYSDATE()
+    // ═══════════════════════════════════════════════════════
+
+    fun testParameterlessNativeFunctionInSelect() {
+        val sql = convertWithPostgres("""
+            SELECT SYSDATE() FROM User u
+        """.trimIndent())
+
+        println("Parameterless native function in SELECT: $sql")
+        assertEquals("SELECT SYSDATE() FROM users u", sql)
+    }
+
+    fun testParameterlessNativeFunctionInWhere() {
+        val sql = convertWithPostgres("""
+            SELECT u FROM User u WHERE u.createdAt < SYSDATE()
+        """.trimIndent())
+
+        println("Parameterless native function in WHERE: $sql")
+        assertTrue("Should have SYSDATE()", sql.contains("SYSDATE()"))
+        assertTrue("Should have comparison", sql.contains("u.created_at < SYSDATE()"))
+    }
+
+    fun testParameterlessNativeFunctionWithAlias() {
+        val sql = convertWithPostgres("""
+            SELECT SYSDATE() AS currentDate FROM User u
+        """.trimIndent())
+
+        println("Parameterless native function with alias: $sql")
+        assertEquals("SELECT SYSDATE() AS currentDate FROM users u", sql)
+    }
+
+    fun testMultipleParameterlessNativeFunctions() {
+        val sql = convertWithPostgres("""
+            SELECT SYSDATE(), NOW(), GETDATE() FROM User u
+        """.trimIndent())
+
+        println("Multiple parameterless native functions: $sql")
+        assertTrue("Should have SYSDATE()", sql.contains("SYSDATE()"))
+        assertTrue("Should have NOW()", sql.contains("NOW()"))
+        assertTrue("Should have GETDATE()", sql.contains("GETDATE()"))
+    }
+
+    fun testParameterlessNativeFunctionMixedWithFields() {
+        val sql = convertWithPostgres("""
+            SELECT u.id, SYSDATE(), u.name FROM User u
+        """.trimIndent())
+
+        println("Parameterless native function mixed with fields: $sql")
+        assertEquals("SELECT u.id, SYSDATE(), u.name FROM users u", sql)
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  Oracle-specific: SYSDATE without parentheses
+    // ═══════════════════════════════════════════════════════
+
+    fun testOracleSysdateNoParens() {
+        val sql = convertWithOracle("""
+            SELECT SYSDATE() FROM User u
+        """.trimIndent())
+
+        println("Oracle SYSDATE (no parens): $sql")
+        assertEquals("SELECT SYSDATE FROM users u", sql)
+    }
+
+    fun testOracleSystimestampNoParens() {
+        val sql = convertWithOracle("""
+            SELECT SYSTIMESTAMP() FROM User u
+        """.trimIndent())
+
+        println("Oracle SYSTIMESTAMP (no parens): $sql")
+        assertEquals("SELECT SYSTIMESTAMP FROM users u", sql)
+    }
+
+    fun testOracleUserNoParens() {
+        val sql = convertWithOracle("""
+            SELECT USER() FROM User u
+        """.trimIndent())
+
+        println("Oracle USER (no parens): $sql")
+        assertEquals("SELECT USER FROM users u", sql)
+    }
+
+    fun testOracleRegularFunctionKeepsParens() {
+        val sql = convertWithOracle("""
+            SELECT CUSTOM_FUNC() FROM User u
+        """.trimIndent())
+
+        println("Oracle regular function (with parens): $sql")
+        assertEquals("SELECT CUSTOM_FUNC() FROM users u", sql)
+    }
 }

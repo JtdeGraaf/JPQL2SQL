@@ -23,4 +23,10 @@ object OracleDialect : SqlDialect {
     override fun substring(str: String, start: String, length: String?): String =
         if (length != null) "SUBSTR($str, $start, $length)"
         else "SUBSTR($str, $start)"
+
+    // Oracle functions that don't use parentheses
+    private val noParenFunctions = setOf("SYSDATE", "SYSTIMESTAMP", "USER", "UID", "ROWNUM", "ROWID", "LEVEL")
+
+    override fun parameterlessFunction(name: String): String =
+        if (name.uppercase() in noParenFunctions) name.uppercase() else "$name()"
 }

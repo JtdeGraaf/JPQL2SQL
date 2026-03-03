@@ -4,7 +4,7 @@
 
 ## [Unreleased]
 
-## 1.0.4
+## 1.1.0
 ### Added
 - SQL output is now automatically formatted using IntelliJ's SQL formatter
 - Support for `CAST(expression AS type)` expressions with automatic JPQL to SQL type mapping (String→VARCHAR, Integer→INTEGER, Long→BIGINT, etc.)

@@ -17,11 +17,48 @@ class SelectClauseParser(
         val projections = mutableListOf<Projection>()
         do {
             projections.add(parseProjection())
+            // Handle unexpected tokens between projections (e.g., "expr@@, nextExpr")
+            // Collect garbage until we find a comma or FROM
+            if (!ctx.check(TokenType.COMMA) && !ctx.check(TokenType.FROM) && !ctx.check(TokenType.EOF)) {
+                val garbage = collectUntilProjectionEnd()
+                if (garbage.isNotEmpty()) {
+                    projections.add(FieldProjection(UnparsedFragment(garbage), null))
+                }
+            }
         } while (ctx.match(TokenType.COMMA))
         return SelectClause(distinct, projections)
     }
 
     private fun parseProjection(): Projection {
+        return try {
+            parseProjectionInternal()
+        } catch (_: JpqlParseException) {
+            // Resilient parsing: capture unparsed content instead of failing
+            val unparsed = collectUntilProjectionEnd()
+            FieldProjection(UnparsedFragment(unparsed), null)
+        }
+    }
+
+    private fun collectUntilProjectionEnd(): String {
+        val collected = StringBuilder()
+        var parenDepth = 0
+        while (!ctx.check(TokenType.EOF)) {
+            // Stop at comma (next projection) or FROM (end of SELECT) at depth 0 or less
+            // We use <= 0 because if we started mid-expression after an exception,
+            // we might encounter closing parens that drive depth negative
+            if (parenDepth <= 0 && (ctx.check(TokenType.COMMA) || ctx.check(TokenType.FROM))) {
+                break
+            }
+            if (ctx.check(TokenType.LPAREN)) parenDepth++
+            if (ctx.check(TokenType.RPAREN)) parenDepth--
+            if (collected.isNotEmpty()) collected.append(" ")
+            collected.append(ctx.current.text)
+            ctx.advance()
+        }
+        return collected.toString()
+    }
+
+    private fun parseProjectionInternal(): Projection {
         if (ctx.check(TokenType.NEW)) return parseConstructorProjection()
 
         val aggregateFunc = when {

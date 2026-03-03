@@ -131,4 +131,105 @@ class ResilientParsingTest : BaseJpaTestCase() {
         assertFalse("Should NOT contain UNPARSED comment", sql.contains("/* UNPARSED:"))
         assertEquals("SELECT u FROM users u", sql)
     }
+
+    // ═══════════════════════════════════════════════════════
+    //  Unparsed content in SELECT clause projections
+    // ═══════════════════════════════════════════════════════
+
+    fun testUnparsedProjectionWithUnknownSyntax() {
+        val sql = convertWithPostgres("""
+            SELECT u.name, SOME_UNKNOWN_FUNC(u.id, @special) FROM User u
+        """.trimIndent())
+
+        println("Unparsed projection with unknown syntax: $sql")
+        assertTrue("Should contain UNPARSED comment", sql.contains("/* UNPARSED:"))
+        assertTrue("Should contain the unknown function", sql.contains("SOME_UNKNOWN_FUNC"))
+        assertTrue("Should have u.name projection", sql.contains("u.name"))
+        assertTrue("Should have FROM clause", sql.contains("FROM users u"))
+    }
+
+    fun testUnparsedProjectionInMiddle() {
+        val sql = convertWithPostgres("""
+            SELECT u.id, WEIRD :: SYNTAX(here), u.name FROM User u
+        """.trimIndent())
+
+        println("Unparsed projection in middle: $sql")
+        assertTrue("Should contain UNPARSED comment", sql.contains("/* UNPARSED:"))
+        assertTrue("Should have u.id", sql.contains("u.id"))
+        assertTrue("Should have u.name", sql.contains("u.name"))
+        assertTrue("Should have FROM clause", sql.contains("FROM users u"))
+    }
+
+    fun testUnparsedProjectionWithSpecialCharacters() {
+        val sql = convertWithPostgres("""
+            SELECT u.name, u.id#special FROM User u
+        """.trimIndent())
+
+        println("Unparsed projection with special chars: $sql")
+        // The parser may handle this differently - just verify it doesn't crash
+        assertTrue("Should have FROM clause", sql.contains("FROM users u"))
+        assertTrue("Should have u.name", sql.contains("u.name"))
+    }
+
+    fun testMixedValidAndUnparsedProjections() {
+        // Garbage @@ should be captured as unparsed, but u.name after the comma should still parse
+        val sql = convertWithPostgres("""
+            SELECT u.id, COUNT(u), UNKNOWN_EXPRESSION@@, u.name FROM User u
+        """.trimIndent())
+
+        println("Mixed valid and unparsed projections: $sql")
+        assertTrue("Should contain UNPARSED comment", sql.contains("/* UNPARSED:"))
+        assertTrue("Should have u.id", sql.contains("u.id"))
+        assertTrue("Should have COUNT", sql.contains("COUNT"))
+        assertTrue("Should have UNKNOWN_EXPRESSION", sql.contains("UNKNOWN_EXPRESSION"))
+        assertTrue("Should have u.name (parsed after garbage)", sql.contains("u.name"))
+    }
+
+    fun testUnparsedInLastProjection() {
+        // Unparsed content at the end, other projections should be fine
+        val sql = convertWithPostgres("""
+            SELECT u.id, u.name, @@weird FROM User u
+        """.trimIndent())
+
+        println("Unparsed in last projection: $sql")
+        assertTrue("Should contain UNPARSED comment", sql.contains("/* UNPARSED:"))
+        assertTrue("Should have u.id", sql.contains("u.id"))
+        assertTrue("Should have u.name", sql.contains("u.name"))
+    }
+
+    fun testGarbageBetweenProjectionsCaptured() {
+        // Test that garbage between projections is captured and subsequent projections still parse
+        val sql = convertWithPostgres("""
+            SELECT u.id @@garbage, u.name FROM User u
+        """.trimIndent())
+
+        println("Garbage between projections: $sql")
+        assertTrue("Should contain UNPARSED comment", sql.contains("/* UNPARSED:"))
+        assertTrue("Should have u.id", sql.contains("u.id"))
+        assertTrue("Should have u.name (after garbage)", sql.contains("u.name"))
+        assertTrue("Should have FROM clause", sql.contains("FROM users u"))
+    }
+
+    fun testUnparsedConstructorProjection() {
+        val sql = convertWithPostgres("""
+            SELECT NEW com.example.Dto(u.id, WEIRD!SYNTAX) FROM User u
+        """.trimIndent())
+
+        println("Unparsed constructor projection: $sql")
+        // Constructor with weird syntax should be captured as unparsed
+        assertTrue("Should have FROM clause", sql.contains("FROM users u"))
+    }
+
+    fun testValidProjectionsNoUnparsedMarkers() {
+        val sql = convertWithPostgres("""
+            SELECT u.id, u.name, COUNT(u.id), MAX(u.id) FROM User u GROUP BY u.id, u.name
+        """.trimIndent())
+
+        println("Valid projections: $sql")
+        assertFalse("Should NOT contain UNPARSED comment", sql.contains("/* UNPARSED:"))
+        assertTrue("Should have u.id", sql.contains("u.id"))
+        assertTrue("Should have u.name", sql.contains("u.name"))
+        assertTrue("Should have COUNT", sql.contains("COUNT"))
+        assertTrue("Should have MAX", sql.contains("MAX"))
+    }
 }

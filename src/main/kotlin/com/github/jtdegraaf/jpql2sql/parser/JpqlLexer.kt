@@ -244,7 +244,8 @@ class JpqlLexer(private val input: String) {
             "TREAT" to TokenType.TREAT,
             "EMPTY" to TokenType.EMPTY,
             "EXISTS" to TokenType.EXISTS,
-            "FUNCTION" to TokenType.FUNCTION
+            "FUNCTION" to TokenType.FUNCTION,
+            "CAST" to TokenType.CAST
         )
     }
 }
@@ -270,7 +271,7 @@ enum class TokenType {
     UPPER, LOWER, TRIM, LENGTH, CONCAT, SUBSTRING, LOCATE,
     ABS, SQRT, MOD, SIZE, INDEX,
     CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP,
-    COALESCE, NULLIF, TREAT, EMPTY, EXISTS, FUNCTION,
+    COALESCE, NULLIF, TREAT, EMPTY, EXISTS, FUNCTION, CAST,
 
     // Operators
     EQ, NE, LT, LE, GT, GE,

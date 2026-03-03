@@ -190,6 +190,14 @@ data class ExistsExpression(
 ) : Expression()
 
 /**
+ * Represents a CAST(expression AS type) expression.
+ */
+data class CastExpression(
+    val expression: Expression,
+    val targetType: String
+) : Expression()
+
+/**
  * Represents unparsed/unrecognized content that should be passed through as-is.
  * Used for resilient parsing when the parser encounters unexpected syntax.
  */

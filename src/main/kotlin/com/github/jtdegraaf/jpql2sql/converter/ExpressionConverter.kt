@@ -34,6 +34,7 @@ class ExpressionConverter(
         is BetweenExpression -> "${convert(expr.lower)} AND ${convert(expr.upper)}"
         is AggregateExpression -> convertAggregate(expr)
         is ExistsExpression -> "EXISTS (${subqueryConverter(expr.subquery)})"
+        is CastExpression -> "CAST(${convert(expr.expression)} AS ${dialect.mapJpqlType(expr.targetType)})"
         is UnparsedFragment -> "/* UNPARSED: ${expr.text} */"
     }
 

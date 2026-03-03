@@ -186,6 +186,7 @@ class ExpressionParser(
 
         if (ctx.check(TokenType.EXISTS)) return parseExistsExpression()
         if (ctx.check(TokenType.FUNCTION)) return parseJpqlFunction()
+        if (ctx.check(TokenType.CAST)) return parseCastExpression()
         if (isFunctionToken(ctx.current.type)) return parseFunctionCall()
         if (isAggregateToken(ctx.current.type)) return parseAggregateInExpression()
         if (ctx.check(TokenType.CASE)) return parseCaseExpression()
@@ -241,6 +242,19 @@ class ExpressionParser(
         ctx.expect(TokenType.RPAREN)
 
         return FunctionCallExpression(nativeFunctionName, args)
+    }
+
+    /**
+     * Parses CAST(expression AS type) expression.
+     */
+    private fun parseCastExpression(): CastExpression {
+        ctx.expect(TokenType.CAST)
+        ctx.expect(TokenType.LPAREN)
+        val expression = parseExpression()
+        ctx.expect(TokenType.AS)
+        val targetType = ctx.expectIdentifierOrKeyword()
+        ctx.expect(TokenType.RPAREN)
+        return CastExpression(expression, targetType)
     }
 
     private fun parseAggregateInExpression(): Expression {

@@ -172,4 +172,68 @@ class ExpressionParserTest {
         val expr = ExpressionParser(ctx) { throw UnsupportedOperationException() }
         assertEquals("User", expr.parseQualifiedName())
     }
+
+    // ──────────── CAST expression ────────────────────────
+    // JPQL uses abstract types: String, Integer, Long, Float, Double, BigDecimal, BigInteger, Date, Time, Timestamp
+
+    @Test
+    fun testCastToString() {
+        val expr = parseExpr("CAST(u.id AS String)") as CastExpression
+        assertEquals("String", expr.targetType)
+        assertTrue(expr.expression is PathExpression)
+    }
+
+    @Test
+    fun testCastToInteger() {
+        val expr = parseExpr("CAST(u.name AS Integer)") as CastExpression
+        assertEquals("Integer", expr.targetType)
+        assertTrue(expr.expression is PathExpression)
+    }
+
+    @Test
+    fun testCastToLong() {
+        val expr = parseExpr("CAST(u.id AS Long)") as CastExpression
+        assertEquals("Long", expr.targetType)
+    }
+
+    @Test
+    fun testCastToDouble() {
+        val expr = parseExpr("CAST(u.id AS Double)") as CastExpression
+        assertEquals("Double", expr.targetType)
+    }
+
+    @Test
+    fun testCastToBigDecimal() {
+        val expr = parseExpr("CAST(u.id AS BigDecimal)") as CastExpression
+        assertEquals("BigDecimal", expr.targetType)
+    }
+
+    @Test
+    fun testCastWithLiteral() {
+        val expr = parseExpr("CAST('123' AS Integer)") as CastExpression
+        assertEquals("Integer", expr.targetType)
+        assertTrue(expr.expression is LiteralExpression)
+    }
+
+    @Test
+    fun testCastWithParameter() {
+        val expr = parseExpr("CAST(:value AS Double)") as CastExpression
+        assertEquals("Double", expr.targetType)
+        assertTrue(expr.expression is ParameterExpression)
+    }
+
+    @Test
+    fun testNestedCast() {
+        val expr = parseExpr("CAST(CAST(u.name AS Integer) AS String)") as CastExpression
+        assertEquals("String", expr.targetType)
+        assertTrue(expr.expression is CastExpression)
+        assertEquals("Integer", (expr.expression as CastExpression).targetType)
+    }
+
+    @Test
+    fun testCastInComparison() {
+        val expr = parseExpr("CAST(u.id AS String) = '123'") as BinaryExpression
+        assertEquals(BinaryOperator.EQ, expr.operator)
+        assertTrue(expr.left is CastExpression)
+    }
 }

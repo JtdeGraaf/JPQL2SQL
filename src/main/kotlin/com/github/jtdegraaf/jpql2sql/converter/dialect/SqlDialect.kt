@@ -22,6 +22,25 @@ interface SqlDialect {
     fun coalesce(expressions: List<String>): String = "COALESCE(${expressions.joinToString(", ")})"
 
     fun nullif(expr1: String, expr2: String): String = "NULLIF($expr1, $expr2)"
+
+    /**
+     * Maps JPQL abstract types to SQL types for CAST expressions.
+     * JPQL types: String, Integer, Long, Float, Double, BigDecimal, BigInteger, Date, Time, Timestamp
+     */
+    fun mapJpqlType(jpqlType: String): String = when (jpqlType.lowercase()) {
+        "string" -> "VARCHAR"
+        "integer", "int" -> "INTEGER"
+        "long" -> "BIGINT"
+        "float" -> "REAL"
+        "double" -> "DOUBLE PRECISION"
+        "bigdecimal" -> "DECIMAL"
+        "biginteger" -> "NUMERIC"
+        "date" -> "DATE"
+        "time" -> "TIME"
+        "timestamp" -> "TIMESTAMP"
+        "boolean" -> "BOOLEAN"
+        else -> jpqlType // Pass through unknown types as-is
+    }
 }
 
 enum class SqlDialectType {

@@ -89,6 +89,13 @@ class SelectClauseParser(
             return FieldProjection(caseExpr, alias)
         }
 
+        // Handle CAST expressions in SELECT clause
+        if (ctx.check(TokenType.CAST)) {
+            val castExpr = expr.parseExpression()
+            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
+            return FieldProjection(castExpr, alias)
+        }
+
         // Handle EXISTS and NOT EXISTS in SELECT clause
         if (ctx.check(TokenType.EXISTS) || (ctx.check(TokenType.NOT) && ctx.peekNext()?.type == TokenType.EXISTS)) {
             val existsExpr = expr.parseExpression()

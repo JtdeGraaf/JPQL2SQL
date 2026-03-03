@@ -13,7 +13,7 @@ class JpqlLexer(private val input: String) {
             if (pos >= input.length) break
             result.add(readToken())
         }
-        result.add(Token(TokenType.EOF, "", pos))
+        result.add(Token(TokenType.END_OF_FILE, "", pos))
         return result
     }
 
@@ -116,35 +116,35 @@ class JpqlLexer(private val input: String) {
         return when {
             twoChar == "<>" || twoChar == "!=" -> {
                 pos += 2
-                Token(TokenType.NE, twoChar, start)
+                Token(TokenType.NOT_EQUALS, twoChar, start)
             }
             twoChar == "<=" -> {
                 pos += 2
-                Token(TokenType.LE, twoChar, start)
+                Token(TokenType.LESS_THAN_OR_EQUAL, twoChar, start)
             }
             twoChar == ">=" -> {
                 pos += 2
-                Token(TokenType.GE, twoChar, start)
+                Token(TokenType.GREATER_THAN_OR_EQUAL, twoChar, start)
             }
             c == '=' -> {
                 pos++
-                Token(TokenType.EQ, "=", start)
+                Token(TokenType.EQUALS, "=", start)
             }
             c == '<' -> {
                 pos++
-                Token(TokenType.LT, "<", start)
+                Token(TokenType.LESS_THAN, "<", start)
             }
             c == '>' -> {
                 pos++
-                Token(TokenType.GT, ">", start)
+                Token(TokenType.GREATER_THAN, ">", start)
             }
             c == '(' -> {
                 pos++
-                Token(TokenType.LPAREN, "(", start)
+                Token(TokenType.LEFT_PARENTHESES, "(", start)
             }
             c == ')' -> {
                 pos++
-                Token(TokenType.RPAREN, ")", start)
+                Token(TokenType.RIGHT_PARENTHESES, ")", start)
             }
             c == ',' -> {
                 pos++
@@ -274,18 +274,18 @@ enum class TokenType {
     COALESCE, NULLIF, TREAT, EMPTY, EXISTS, FUNCTION, CAST,
 
     // Operators
-    EQ, NE, LT, LE, GT, GE,
+    EQUALS, NOT_EQUALS, LESS_THAN, LESS_THAN_OR_EQUAL, GREATER_THAN, GREATER_THAN_OR_EQUAL,
     PLUS, MINUS, STAR, SLASH,
 
     // Punctuation
-    LPAREN, RPAREN, COMMA, DOT,
+    LEFT_PARENTHESES, RIGHT_PARENTHESES, COMMA, DOT,
 
     // Literals and identifiers
     IDENTIFIER, STRING_LITERAL, NUMBER_LITERAL,
     NAMED_PARAM, POSITIONAL_PARAM,
 
     // Special
-    EOF, UNKNOWN;
+    END_OF_FILE, UNKNOWN;
 
     /**
      * Returns true if this token type is a keyword or function name that could
@@ -296,14 +296,14 @@ enum class TokenType {
     companion object {
         private val NON_KEYWORD_TOKENS = setOf(
             // Operators
-            EQ, NE, LT, LE, GT, GE, PLUS, MINUS, STAR, SLASH,
+            EQUALS, NOT_EQUALS, LESS_THAN, LESS_THAN_OR_EQUAL, GREATER_THAN, GREATER_THAN_OR_EQUAL, PLUS, MINUS, STAR, SLASH,
             // Punctuation
-            LPAREN, RPAREN, COMMA, DOT,
+            LEFT_PARENTHESES, RIGHT_PARENTHESES, COMMA, DOT,
             // Literals and identifiers
             IDENTIFIER, STRING_LITERAL, NUMBER_LITERAL,
             NAMED_PARAM, POSITIONAL_PARAM,
             // Special
-            EOF, UNKNOWN
+            END_OF_FILE, UNKNOWN
         )
     }
 }

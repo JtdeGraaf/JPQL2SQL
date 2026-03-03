@@ -82,7 +82,7 @@ class ParseContext(input: String) {
      */
     fun collectUntilClauseKeyword(): String {
         val collected = StringBuilder()
-        while (!check(TokenType.EOF) && !isClauseKeyword(current.type)) {
+        while (!check(TokenType.END_OF_FILE) && !isClauseKeyword(current.type)) {
             if (collected.isNotEmpty()) collected.append(" ")
             collected.append(current.text)
             advance()
@@ -97,7 +97,7 @@ class ParseContext(input: String) {
             TokenType.SELECT, TokenType.FROM, TokenType.WHERE,
             TokenType.JOIN, TokenType.INNER, TokenType.LEFT, TokenType.RIGHT,
             TokenType.ORDER, TokenType.GROUP, TokenType.HAVING,
-            TokenType.ON, TokenType.FETCH, TokenType.EOF, TokenType.RPAREN
+            TokenType.ON, TokenType.FETCH, TokenType.END_OF_FILE, TokenType.RIGHT_PARENTHESES
         )
     }
 }

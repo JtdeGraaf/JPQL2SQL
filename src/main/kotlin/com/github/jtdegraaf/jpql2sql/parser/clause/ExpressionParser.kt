@@ -80,16 +80,16 @@ class ExpressionParser(
         val notIn = ctx.current.type == TokenType.NOT && ctx.peekNext()?.type == TokenType.IN
         if (notIn) ctx.advance()
         if (ctx.match(TokenType.IN)) {
-            ctx.expect(TokenType.LPAREN)
+            ctx.expect(TokenType.LEFT_PARENTHESES)
             val operator = if (notIn) BinaryOperator.NOT_IN else BinaryOperator.IN
             if (ctx.check(TokenType.SELECT)) {
                 val subquery = subqueryParser()
-                ctx.expect(TokenType.RPAREN)
+                ctx.expect(TokenType.RIGHT_PARENTHESES)
                 return BinaryExpression(left, operator, SubqueryExpression(subquery))
             }
             val elements = mutableListOf<Expression>()
             do { elements.add(parseExpression()) } while (ctx.match(TokenType.COMMA))
-            ctx.expect(TokenType.RPAREN)
+            ctx.expect(TokenType.RIGHT_PARENTHESES)
             return BinaryExpression(left, operator, InListExpression(elements))
         }
 
@@ -116,12 +116,12 @@ class ExpressionParser(
         }
 
         val op = when {
-            ctx.match(TokenType.EQ) -> BinaryOperator.EQ
-            ctx.match(TokenType.NE) -> BinaryOperator.NE
-            ctx.match(TokenType.LT) -> BinaryOperator.LT
-            ctx.match(TokenType.LE) -> BinaryOperator.LE
-            ctx.match(TokenType.GT) -> BinaryOperator.GT
-            ctx.match(TokenType.GE) -> BinaryOperator.GE
+            ctx.match(TokenType.EQUALS) -> BinaryOperator.EQ
+            ctx.match(TokenType.NOT_EQUALS) -> BinaryOperator.NE
+            ctx.match(TokenType.LESS_THAN) -> BinaryOperator.LT
+            ctx.match(TokenType.LESS_THAN_OR_EQUAL) -> BinaryOperator.LE
+            ctx.match(TokenType.GREATER_THAN) -> BinaryOperator.GT
+            ctx.match(TokenType.GREATER_THAN_OR_EQUAL) -> BinaryOperator.GE
             else -> return left
         }
         return BinaryExpression(left, op, parseAdditiveExpression())
@@ -160,14 +160,14 @@ class ExpressionParser(
     }
 
     private fun parsePrimaryExpression(): Expression {
-        if (ctx.match(TokenType.LPAREN)) {
+        if (ctx.match(TokenType.LEFT_PARENTHESES)) {
             if (ctx.check(TokenType.SELECT)) {
                 val subquery = subqueryParser()
-                ctx.expect(TokenType.RPAREN)
+                ctx.expect(TokenType.RIGHT_PARENTHESES)
                 return SubqueryExpression(subquery)
             }
             val expr = parseExpression()
-            ctx.expect(TokenType.RPAREN)
+            ctx.expect(TokenType.RIGHT_PARENTHESES)
             return expr
         }
 
@@ -197,13 +197,13 @@ class ExpressionParser(
     fun parseFunctionCall(): FunctionCallExpression {
         val name = ctx.current.text.uppercase()
         ctx.advance()
-        if (!ctx.check(TokenType.LPAREN)) return FunctionCallExpression(name, emptyList())
-        ctx.expect(TokenType.LPAREN)
+        if (!ctx.check(TokenType.LEFT_PARENTHESES)) return FunctionCallExpression(name, emptyList())
+        ctx.expect(TokenType.LEFT_PARENTHESES)
         val args = mutableListOf<Expression>()
-        if (!ctx.check(TokenType.RPAREN)) {
+        if (!ctx.check(TokenType.RIGHT_PARENTHESES)) {
             do { args.add(parseExpression()) } while (ctx.match(TokenType.COMMA))
         }
-        ctx.expect(TokenType.RPAREN)
+        ctx.expect(TokenType.RIGHT_PARENTHESES)
         return FunctionCallExpression(name, args)
     }
 
@@ -212,9 +212,9 @@ class ExpressionParser(
      */
     private fun parseExistsExpression(): ExistsExpression {
         ctx.expect(TokenType.EXISTS)
-        ctx.expect(TokenType.LPAREN)
+        ctx.expect(TokenType.LEFT_PARENTHESES)
         val subquery = subqueryParser()
-        ctx.expect(TokenType.RPAREN)
+        ctx.expect(TokenType.RIGHT_PARENTHESES)
         return ExistsExpression(subquery)
     }
 
@@ -225,7 +225,7 @@ class ExpressionParser(
      */
     private fun parseJpqlFunction(): FunctionCallExpression {
         ctx.expect(TokenType.FUNCTION)
-        ctx.expect(TokenType.LPAREN)
+        ctx.expect(TokenType.LEFT_PARENTHESES)
 
         // First argument must be the function name as a string literal
         if (!ctx.check(TokenType.STRING_LITERAL)) {
@@ -239,7 +239,7 @@ class ExpressionParser(
         while (ctx.match(TokenType.COMMA)) {
             args.add(parseExpression())
         }
-        ctx.expect(TokenType.RPAREN)
+        ctx.expect(TokenType.RIGHT_PARENTHESES)
 
         return FunctionCallExpression(nativeFunctionName, args)
     }
@@ -249,11 +249,11 @@ class ExpressionParser(
      */
     private fun parseCastExpression(): CastExpression {
         ctx.expect(TokenType.CAST)
-        ctx.expect(TokenType.LPAREN)
+        ctx.expect(TokenType.LEFT_PARENTHESES)
         val expression = parseExpression()
         ctx.expect(TokenType.AS)
         val targetType = ctx.expectIdentifierOrKeyword()
-        ctx.expect(TokenType.RPAREN)
+        ctx.expect(TokenType.RIGHT_PARENTHESES)
         return CastExpression(expression, targetType)
     }
 
@@ -267,14 +267,14 @@ class ExpressionParser(
             else -> throw ctx.parseError("Expected aggregate function")
         }
         ctx.advance()
-        ctx.expect(TokenType.LPAREN)
+        ctx.expect(TokenType.LEFT_PARENTHESES)
         if (func == AggregateFunction.COUNT && ctx.check(TokenType.STAR)) {
-            ctx.advance(); ctx.expect(TokenType.RPAREN)
+            ctx.advance(); ctx.expect(TokenType.RIGHT_PARENTHESES)
             return AggregateExpression(func, false, PathExpression(listOf("*")))
         }
         val distinct = ctx.match(TokenType.DISTINCT)
         val expr = parseExpression()
-        ctx.expect(TokenType.RPAREN)
+        ctx.expect(TokenType.RIGHT_PARENTHESES)
         return AggregateExpression(func, distinct, expr)
     }
 

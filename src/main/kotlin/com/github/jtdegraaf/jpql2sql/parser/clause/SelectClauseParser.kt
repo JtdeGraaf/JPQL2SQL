@@ -19,7 +19,7 @@ class SelectClauseParser(
             projections.add(parseProjection())
             // Handle unexpected tokens between projections (e.g., "expr@@, nextExpr")
             // Collect garbage until we find a comma or FROM
-            if (!ctx.check(TokenType.COMMA) && !ctx.check(TokenType.FROM) && !ctx.check(TokenType.EOF)) {
+            if (!ctx.check(TokenType.COMMA) && !ctx.check(TokenType.FROM) && !ctx.check(TokenType.END_OF_FILE)) {
                 val garbage = collectUntilProjectionEnd()
                 if (garbage.isNotEmpty()) {
                     projections.add(FieldProjection(UnparsedFragment(garbage), null))
@@ -42,15 +42,15 @@ class SelectClauseParser(
     private fun collectUntilProjectionEnd(): String {
         val collected = StringBuilder()
         var parenDepth = 0
-        while (!ctx.check(TokenType.EOF)) {
+        while (!ctx.check(TokenType.END_OF_FILE)) {
             // Stop at comma (next projection) or FROM (end of SELECT) at depth 0 or less
             // We use <= 0 because if we started mid-expression after an exception,
             // we might encounter closing parens that drive depth negative
             if (parenDepth <= 0 && (ctx.check(TokenType.COMMA) || ctx.check(TokenType.FROM))) {
                 break
             }
-            if (ctx.check(TokenType.LPAREN)) parenDepth++
-            if (ctx.check(TokenType.RPAREN)) parenDepth--
+            if (ctx.check(TokenType.LEFT_PARENTHESES)) parenDepth++
+            if (ctx.check(TokenType.RIGHT_PARENTHESES)) parenDepth--
             collected.append(ctx.current.text)
             ctx.advance()
         }
@@ -71,11 +71,11 @@ class SelectClauseParser(
 
         if (aggregateFunc != null) {
             ctx.advance()
-            ctx.expect(TokenType.LPAREN)
+            ctx.expect(TokenType.LEFT_PARENTHESES)
 
             if (aggregateFunc == AggregateFunction.COUNT && ctx.check(TokenType.STAR)) {
                 ctx.advance()
-                ctx.expect(TokenType.RPAREN)
+                ctx.expect(TokenType.RIGHT_PARENTHESES)
 
                 // Check if this COUNT(*) is part of a comparison expression like COUNT(*) > 0
                 if (isComparisonOperator(ctx.current.type)) {
@@ -95,7 +95,7 @@ class SelectClauseParser(
 
             val distinct = ctx.match(TokenType.DISTINCT)
             val expression = expr.parseExpression()
-            ctx.expect(TokenType.RPAREN)
+            ctx.expect(TokenType.RIGHT_PARENTHESES)
 
             // Check if this aggregate is part of a comparison expression like COUNT(m) > 0
             if (isComparisonOperator(ctx.current.type)) {
@@ -152,17 +152,17 @@ class SelectClauseParser(
     }
 
     private fun isComparisonOperator(type: TokenType): Boolean {
-        return type in setOf(TokenType.EQ, TokenType.NE, TokenType.LT, TokenType.LE, TokenType.GT, TokenType.GE)
+        return type in setOf(TokenType.EQUALS, TokenType.NOT_EQUALS, TokenType.LESS_THAN, TokenType.LESS_THAN_OR_EQUAL, TokenType.GREATER_THAN, TokenType.GREATER_THAN_OR_EQUAL)
     }
 
     private fun parseRemainingComparison(left: Expression): Expression {
         val op = when {
-            ctx.match(TokenType.EQ) -> BinaryOperator.EQ
-            ctx.match(TokenType.NE) -> BinaryOperator.NE
-            ctx.match(TokenType.LT) -> BinaryOperator.LT
-            ctx.match(TokenType.LE) -> BinaryOperator.LE
-            ctx.match(TokenType.GT) -> BinaryOperator.GT
-            ctx.match(TokenType.GE) -> BinaryOperator.GE
+            ctx.match(TokenType.EQUALS) -> BinaryOperator.EQ
+            ctx.match(TokenType.NOT_EQUALS) -> BinaryOperator.NE
+            ctx.match(TokenType.LESS_THAN) -> BinaryOperator.LT
+            ctx.match(TokenType.LESS_THAN_OR_EQUAL) -> BinaryOperator.LE
+            ctx.match(TokenType.GREATER_THAN) -> BinaryOperator.GT
+            ctx.match(TokenType.GREATER_THAN_OR_EQUAL) -> BinaryOperator.GE
             else -> return left
         }
         val right = expr.parseExpression()
@@ -172,12 +172,12 @@ class SelectClauseParser(
     private fun parseConstructorProjection(): ConstructorProjection {
         ctx.expect(TokenType.NEW)
         val className = expr.parseQualifiedName()
-        ctx.expect(TokenType.LPAREN)
+        ctx.expect(TokenType.LEFT_PARENTHESES)
         val args = mutableListOf<Expression>()
-        if (!ctx.check(TokenType.RPAREN)) {
+        if (!ctx.check(TokenType.RIGHT_PARENTHESES)) {
             do { args.add(expr.parseExpression()) } while (ctx.match(TokenType.COMMA))
         }
-        ctx.expect(TokenType.RPAREN)
+        ctx.expect(TokenType.RIGHT_PARENTHESES)
         return ConstructorProjection(className, args)
     }
 }

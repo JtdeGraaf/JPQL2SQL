@@ -115,7 +115,7 @@ class ParseContextTest {
         assertTrue(ctx.isClauseKeyword(TokenType.GROUP))
         assertTrue(ctx.isClauseKeyword(TokenType.HAVING))
         assertTrue(ctx.isClauseKeyword(TokenType.JOIN))
-        assertTrue(ctx.isClauseKeyword(TokenType.EOF))
+        assertTrue(ctx.isClauseKeyword(TokenType.END_OF_FILE))
         // Non-clause keywords
         assertFalse(ctx.isClauseKeyword(TokenType.COUNT))
         assertFalse(ctx.isClauseKeyword(TokenType.UPPER))

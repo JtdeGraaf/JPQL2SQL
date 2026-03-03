@@ -18,7 +18,7 @@ class JpqlLexerTest {
         assertEquals("User", tokens[3].text)
         assertEquals(TokenType.IDENTIFIER, tokens[4].type)
         assertEquals("u", tokens[4].text)
-        assertEquals(TokenType.EOF, tokens[5].type)
+        assertEquals(TokenType.END_OF_FILE, tokens[5].type)
     }
 
     @Test
@@ -28,7 +28,7 @@ class JpqlLexerTest {
 
         assertEquals(TokenType.WHERE, tokens[0].type)
         assertEquals(TokenType.IDENTIFIER, tokens[1].type)
-        assertEquals(TokenType.EQ, tokens[2].type)
+        assertEquals(TokenType.EQUALS, tokens[2].type)
         assertEquals(TokenType.STRING_LITERAL, tokens[3].type)
         assertEquals("John", tokens[3].text)
     }
@@ -74,12 +74,12 @@ class JpqlLexerTest {
         val lexer = JpqlLexer("a = b AND c <> d AND e < f AND g <= h AND i > j AND k >= l")
         val tokens = lexer.tokens
 
-        assertEquals(TokenType.EQ, tokens[1].type)
-        assertEquals(TokenType.NE, tokens[5].type)
-        assertEquals(TokenType.LT, tokens[9].type)
-        assertEquals(TokenType.LE, tokens[13].type)
-        assertEquals(TokenType.GT, tokens[17].type)
-        assertEquals(TokenType.GE, tokens[21].type)
+        assertEquals(TokenType.EQUALS, tokens[1].type)
+        assertEquals(TokenType.NOT_EQUALS, tokens[5].type)
+        assertEquals(TokenType.LESS_THAN, tokens[9].type)
+        assertEquals(TokenType.LESS_THAN_OR_EQUAL, tokens[13].type)
+        assertEquals(TokenType.GREATER_THAN, tokens[17].type)
+        assertEquals(TokenType.GREATER_THAN_OR_EQUAL, tokens[21].type)
     }
 
     @Test

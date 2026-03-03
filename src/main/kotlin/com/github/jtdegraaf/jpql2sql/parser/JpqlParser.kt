@@ -61,7 +61,7 @@ class JpqlParser(input: String) {
      * Collects any unparsed tokens until the next clause keyword and adds to the fragments list.
      */
     private fun collectUnparsedBetweenClauses(fragments: MutableList<String>) {
-        if (!ctx.check(TokenType.EOF) && !ctx.isClauseKeyword(ctx.current.type)) {
+        if (!ctx.check(TokenType.END_OF_FILE) && !ctx.isClauseKeyword(ctx.current.type)) {
             val unparsed = ctx.collectUntilClauseKeyword()
             if (unparsed.isNotBlank()) {
                 fragments.add(unparsed)

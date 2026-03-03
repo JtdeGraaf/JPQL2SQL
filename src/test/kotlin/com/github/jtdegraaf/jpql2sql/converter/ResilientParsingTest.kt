@@ -193,6 +193,7 @@ class ResilientParsingTest : BaseJpaTestCase() {
 
         println("Unparsed in last projection: $sql")
         assertTrue("Should contain UNPARSED comment", sql.contains("/* UNPARSED:"))
+        assertTrue("Should contain @@weird (concatenated)", sql.contains("@@weird"))
         assertTrue("Should have u.id", sql.contains("u.id"))
         assertTrue("Should have u.name", sql.contains("u.name"))
     }
@@ -205,6 +206,7 @@ class ResilientParsingTest : BaseJpaTestCase() {
 
         println("Garbage between projections: $sql")
         assertTrue("Should contain UNPARSED comment", sql.contains("/* UNPARSED:"))
+        assertTrue("Should contain @@garbage (concatenated)", sql.contains("@@garbage"))
         assertTrue("Should have u.id", sql.contains("u.id"))
         assertTrue("Should have u.name (after garbage)", sql.contains("u.name"))
         assertTrue("Should have FROM clause", sql.contains("FROM users u"))

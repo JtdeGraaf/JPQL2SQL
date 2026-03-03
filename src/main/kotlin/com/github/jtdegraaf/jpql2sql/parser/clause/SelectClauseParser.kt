@@ -51,7 +51,6 @@ class SelectClauseParser(
             }
             if (ctx.check(TokenType.LPAREN)) parenDepth++
             if (ctx.check(TokenType.RPAREN)) parenDepth--
-            if (collected.isNotEmpty()) collected.append(" ")
             collected.append(ctx.current.text)
             ctx.advance()
         }

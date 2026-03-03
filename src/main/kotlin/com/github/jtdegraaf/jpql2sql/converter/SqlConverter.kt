@@ -45,6 +45,7 @@ class SqlConverter(
             query.groupBy?.let { append(" ").append(convertGroupBy(it)) }
             query.having?.let { append(" ").append("HAVING ${exprConverter.convert(it.condition)}") }
             query.orderBy?.let { append(" ").append(convertOrderBy(it)) }
+            query.fetch?.let { append(" ").append(convertFetch(it)) }
             for (fragment in query.unparsedFragments) {
                 append(" /* UNPARSED: $fragment */")
             }
@@ -112,5 +113,10 @@ class SqlConverter(
             "$expr$dir$nulls"
         }
         return "ORDER BY $items"
+    }
+
+    private fun convertFetch(fetch: FetchClause): String {
+        val limit = if (fetch.fetchCount == Int.MAX_VALUE) null else fetch.fetchCount
+        return dialect.limitClause(limit, fetch.offset) ?: ""
     }
 }

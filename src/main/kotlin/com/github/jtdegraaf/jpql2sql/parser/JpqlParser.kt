@@ -8,7 +8,7 @@ import com.github.jtdegraaf.jpql2sql.parser.clause.*
  * Creates a shared [ParseContext] and delegates to specialised clause parsers:
  * [SelectClauseParser], [FromClauseParser], [JoinClauseParser],
  * [WhereClauseParser], [GroupByClauseParser], [HavingClauseParser],
- * [OrderByClauseParser], and [ExpressionParser].
+ * [OrderByClauseParser], [FetchClauseParser], and [ExpressionParser].
  */
 class JpqlParser(input: String) {
 
@@ -22,6 +22,7 @@ class JpqlParser(input: String) {
     private val groupByParser = GroupByClauseParser(ctx, expr)
     private val havingParser = HavingClauseParser(ctx, expr)
     private val orderByParser = OrderByClauseParser(ctx, expr)
+    private val fetchParser = FetchClauseParser(ctx)
 
     fun parse(): JpqlQuery {
         val unparsedFragments = mutableListOf<String>()
@@ -51,10 +52,13 @@ class JpqlParser(input: String) {
             orderByParser.parse().also { collectUnparsedBetweenClauses(unparsedFragments) }
         } else null
 
+        val fetch = fetchParser.parse()
+        if (fetch != null) collectUnparsedBetweenClauses(unparsedFragments)
+
         // Collect any trailing unparsed content
         collectUnparsedBetweenClauses(unparsedFragments)
 
-        return JpqlQuery(select, from, joins, where, groupBy, having, orderBy, unparsedFragments)
+        return JpqlQuery(select, from, joins, where, groupBy, having, orderBy, fetch, unparsedFragments)
     }
 
     /**

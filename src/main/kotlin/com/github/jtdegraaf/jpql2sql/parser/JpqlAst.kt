@@ -10,6 +10,7 @@ data class JpqlQuery(
     val groupBy: GroupByClause? = null,
     val having: HavingClause? = null,
     val orderBy: OrderByClause? = null,
+    val fetch: FetchClause? = null,
     val unparsedFragments: List<String> = emptyList()  // Any unparsed content between/after clauses
 ) : JpqlNode()
 
@@ -98,6 +99,14 @@ enum class OrderDirection {
 enum class NullsOrdering {
     FIRST, LAST
 }
+
+/**
+ * Represents OFFSET m ROWS FETCH FIRST n ROWS ONLY clause.
+ */
+data class FetchClause(
+    val offset: Int? = null,
+    val fetchCount: Int
+) : JpqlNode()
 
 sealed class Expression : JpqlNode()
 

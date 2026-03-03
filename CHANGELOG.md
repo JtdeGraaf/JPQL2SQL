@@ -8,6 +8,12 @@
 ### Added
 - SQL output is now automatically formatted using IntelliJ's SQL formatter
 - Support for `CAST(expression AS type)` expressions with automatic JPQL to SQL type mapping (String→VARCHAR, Integer→INTEGER, Long→BIGINT, etc.)
+- Support for parameterless native function calls like `SYSDATE()` (Hibernate-compatible syntax)
+- Oracle dialect: `SYSDATE`, `SYSTIMESTAMP`, `USER` etc. rendered without parentheses
+- Support for `FETCH FIRST n ROWS ONLY` and `OFFSET m ROWS FETCH FIRST n ROWS ONLY` syntax
+
+### Changed
+- Resilient parsing: unparsed/unsupported syntax is now captured as SQL comments (`/* UNPARSED: ... */`) instead of throwing exceptions
 
 
 ## [1.0.3]

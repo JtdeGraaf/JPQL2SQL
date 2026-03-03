@@ -97,7 +97,8 @@ class ParseContext(input: String) {
             TokenType.SELECT, TokenType.FROM, TokenType.WHERE,
             TokenType.JOIN, TokenType.INNER, TokenType.LEFT, TokenType.RIGHT,
             TokenType.ORDER, TokenType.GROUP, TokenType.HAVING,
-            TokenType.ON, TokenType.FETCH, TokenType.END_OF_FILE, TokenType.RIGHT_PARENTHESES
+            TokenType.ON, TokenType.FETCH, TokenType.OFFSET,
+            TokenType.END_OF_FILE, TokenType.RIGHT_PARENTHESES
         )
     }
 }

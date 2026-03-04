@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.2.0]
+
+### Added
+
+- Support for Spring Data JPA derived query methods (`findByName`, `findByAgeGreaterThan`, `countByStatus`, etc.)
+- Implicit JOIN generation for relationship traversals in `@Query` JPQL (e.g., `u.department.name` automatically generates `LEFT JOIN departments`)
+- FK optimization: accessing `.id` on `@ManyToOne`/`@OneToOne` relationships uses the FK column directly without generating a JOIN
+
 ## [1.1.0]
 
 ### Added
@@ -57,7 +65,8 @@
 - Named (`:param`) and positional (`?1`) parameter preservation
 - Configurable SQL dialect under Settings > Tools > JPQL to SQL
 
-[Unreleased]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.1.0...HEAD
+[Unreleased]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.2.0...HEAD
+[1.2.0]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.1.0...1.2.0
 [1.1.0]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.0.3...1.1.0
 [1.0.3]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.0.2...1.0.3
 [1.0.2]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.0.1...1.0.2

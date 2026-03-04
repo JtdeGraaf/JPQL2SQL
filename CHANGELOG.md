@@ -4,8 +4,10 @@
 
 ## [Unreleased]
 
-## 1.1.0
+## [1.1.0]
+
 ### Added
+
 - SQL output is now automatically formatted using IntelliJ's SQL formatter
 - Support for `CAST(expression AS type)` expressions with automatic JPQL to SQL type mapping (String→VARCHAR, Integer→INTEGER, Long→BIGINT, etc.)
 - Support for parameterless native function calls like `SYSDATE()` (Hibernate-compatible syntax)
@@ -13,8 +15,8 @@
 - Support for `FETCH FIRST n ROWS ONLY` and `OFFSET m ROWS FETCH FIRST n ROWS ONLY` syntax
 
 ### Changed
-- Resilient parsing: unparsed/unsupported syntax is now captured as SQL comments (`/* UNPARSED: ... */`) instead of throwing exceptions
 
+- Resilient parsing: unparsed/unsupported syntax is now captured as SQL comments (`/* UNPARSED: ... */`) instead of throwing exceptions
 
 ## [1.0.3]
 
@@ -55,7 +57,8 @@
 - Named (`:param`) and positional (`?1`) parameter preservation
 - Configurable SQL dialect under Settings > Tools > JPQL to SQL
 
-[Unreleased]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.0.3...HEAD
+[Unreleased]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.1.0...HEAD
+[1.1.0]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.0.3...1.1.0
 [1.0.3]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.0.2...1.0.3
 [1.0.2]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.0.1...1.0.2
 [1.0.1]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.0.0...1.0.1

@@ -279,7 +279,7 @@ class DerivedQueryParser {
                 val property = conditionStr.removeSuffix(suffix)
                 if (property.isNotEmpty()) {
                     return PropertyCondition(
-                        property = decapitalize(property),
+                        property = convertToPropertyPath(property),
                         operator = operator,
                         connector = connector
                     )
@@ -289,7 +289,7 @@ class DerivedQueryParser {
 
         // No operator suffix found - default to EQUALS
         return PropertyCondition(
-            property = decapitalize(conditionStr),
+            property = convertToPropertyPath(conditionStr),
             operator = ConditionOperator.EQUALS,
             connector = connector
         )
@@ -322,7 +322,7 @@ class DerivedQueryParser {
                     )
                     val property = remaining.substring(prevEnd, descIndex)
                     if (property.isNotEmpty()) {
-                        parts.add(OrderByPart(decapitalize(property), direction))
+                        parts.add(OrderByPart(convertToPropertyPath(property), direction))
                     }
                     remaining = remaining.substring(0, prevEnd)
                 }
@@ -337,7 +337,7 @@ class DerivedQueryParser {
                     )
                     val property = remaining.substring(prevEnd, ascIndex)
                     if (property.isNotEmpty()) {
-                        parts.add(OrderByPart(decapitalize(property), direction))
+                        parts.add(OrderByPart(convertToPropertyPath(property), direction))
                     }
                     remaining = remaining.substring(0, prevEnd)
                 }
@@ -352,7 +352,7 @@ class DerivedQueryParser {
                     )
                     val property = remaining.substring(prevEnd)
                     if (property.isNotEmpty()) {
-                        parts.add(OrderByPart(decapitalize(property), Direction.ASC))
+                        parts.add(OrderByPart(convertToPropertyPath(property), Direction.ASC))
                     }
                     remaining = remaining.substring(0, prevEnd)
                 }
@@ -360,6 +360,23 @@ class DerivedQueryParser {
         }
 
         return parts.reversed()
+    }
+
+    /**
+     * Converts a method name property segment to a dot-separated property path.
+     *
+     * Spring Data JPA uses underscore (_) as an explicit path separator for nested properties.
+     * For example: "Participants_Bot_Id" becomes "participants.bot.id"
+     *
+     * Each segment is decapitalized to match entity field names.
+     */
+    private fun convertToPropertyPath(str: String): String {
+        if (str.isEmpty()) return str
+
+        // Split by underscore to handle nested properties
+        return str.split("_")
+            .filter { it.isNotEmpty() }
+            .joinToString(".") { decapitalize(it) }
     }
 
     private fun decapitalize(str: String): String {

@@ -406,4 +406,53 @@ class DerivedQueryParserTest {
         assertEquals(1, result.conditions.size)
         assertEquals("status", result.conditions[0].property)
     }
+
+    @Test
+    fun testFindByNestedPropertyWithUnderscore() {
+        val result = parser.parse("findByParticipants_Bot_IdAndStatus", "Match")
+
+        assertNotNull(result)
+        assertEquals(QueryPrefix.FIND, result!!.prefix)
+        assertEquals(2, result.conditions.size)
+
+        // Underscore separates nested properties: participants.bot.id
+        assertEquals("participants.bot.id", result.conditions[0].property)
+        assertEquals(ConditionOperator.EQUALS, result.conditions[0].operator)
+
+        assertEquals("status", result.conditions[1].property)
+        assertEquals(Connector.AND, result.conditions[1].connector)
+    }
+
+    @Test
+    fun testFindByNestedPropertySingleLevel() {
+        val result = parser.parse("findByAddress_City", entityName)
+
+        assertNotNull(result)
+        assertEquals(1, result!!.conditions.size)
+        assertEquals("address.city", result.conditions[0].property)
+    }
+
+    @Test
+    fun testFindByNestedPropertyWithOperator() {
+        val result = parser.parse("findByAddress_ZipCodeStartingWith", entityName)
+
+        assertNotNull(result)
+        assertEquals(1, result!!.conditions.size)
+        assertEquals("address.zipCode", result.conditions[0].property)
+        assertEquals(ConditionOperator.STARTING_WITH, result.conditions[0].operator)
+    }
+
+    @Test
+    fun testOrderByNestedProperty() {
+        val result = parser.parse("findByStatusOrderByAddress_CityDesc", entityName)
+
+        assertNotNull(result)
+        assertEquals(1, result!!.conditions.size)
+        assertEquals("status", result.conditions[0].property)
+
+        assertNotNull(result.orderBy)
+        assertEquals(1, result.orderBy!!.size)
+        assertEquals("address.city", result.orderBy[0].property)
+        assertEquals(Direction.DESC, result.orderBy[0].direction)
+    }
 }

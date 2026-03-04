@@ -1,44 +1,50 @@
 package com.github.jtdegraaf.jpql2sql.repository
 
+import com.github.jtdegraaf.jpql2sql.converter.EntityResolver
 import com.github.jtdegraaf.jpql2sql.parser.*
 
 /**
- * Builds a JpqlQuery AST from parsed derived query components.
+ * Builds a complete JpqlQuery AST from parsed derived query components.
  *
- * This enables reuse of the existing SqlConverter for all SQL generation,
- * avoiding duplicate conversion logic.
+ * This builder generates all necessary JOINs for relationship traversals directly,
+ * producing a complete AST ready for SqlConverter without needing transformation.
  *
- * For nested properties (e.g., "participants.bot.id"), this builder generates
- * the necessary JOIN clauses to access the related entities.
+ * @param entityResolver Used to detect relationship fields and resolve target entities
  */
-class DerivedQueryAstBuilder {
+class DerivedQueryAstBuilder(
+    private val entityResolver: EntityResolver
+) {
 
     companion object {
         private const val DEFAULT_ALIAS = "e"
     }
 
-    /**
-     * Tracks generated joins: maps path prefix (e.g., "e.participants") to its alias (e.g., "participants_1")
-     */
-    private val joinAliases = mutableMapOf<String, String>()
+    private val aliasToEntity = mutableMapOf<String, String>()
+    private val joinPathToAlias = mutableMapOf<String, String>()
+    private val joins = mutableListOf<JoinClause>()
     private var aliasCounter = 0
 
     fun build(components: DerivedQueryComponents): JpqlQuery {
-        // Reset state for each build
-        joinAliases.clear()
+        // Reset state
+        aliasToEntity.clear()
+        joinPathToAlias.clear()
+        joins.clear()
         aliasCounter = 0
 
         val alias = DEFAULT_ALIAS
+        aliasToEntity[alias] = components.entityName
 
-        // Collect all property paths that need joins
+        // Collect all property paths that may need joins
         val allPaths = mutableListOf<String>()
         for (condition in components.conditions) {
             allPaths.add(condition.property)
         }
         components.orderBy?.forEach { allPaths.add(it.property) }
 
-        // Build joins for all nested properties
-        val joins = buildJoinsForPaths(allPaths, alias)
+        // Generate joins for all nested property paths
+        for (path in allPaths) {
+            generateJoinsForPath(path, alias)
+        }
 
         val select = buildSelectClause(components, alias)
         val from = buildFromClause(components, alias)
@@ -49,7 +55,7 @@ class DerivedQueryAstBuilder {
         return JpqlQuery(
             select = select,
             from = from,
-            joins = joins,
+            joins = joins.toList(),
             where = where,
             groupBy = null,
             having = null,
@@ -59,87 +65,118 @@ class DerivedQueryAstBuilder {
     }
 
     /**
-     * Builds JOIN clauses for all nested property paths.
+     * Generates JOIN clauses for a property path that may traverse relationships.
      *
-     * For a path like "participants.bot.id", we need:
-     * - JOIN e.participants participants_1
-     * - JOIN participants_1.bot bot_1
+     * For a path like "participants.bot.name":
+     * - Checks if "participants" is a relationship -> generates JOIN
+     * - Checks if "bot" is a relationship on the joined entity -> generates JOIN
+     * - "name" is a simple property, no JOIN needed
      *
-     * The final property (id) is accessed via the last join alias.
+     * Optimization: For paths like "participants.bot.id" where the last part is the
+     * primary key of the relationship target, no JOIN is needed for "bot" because
+     * the FK column already contains the ID value.
      */
-    private fun buildJoinsForPaths(paths: List<String>, rootAlias: String): List<JoinClause> {
-        val joins = mutableListOf<JoinClause>()
+    private fun generateJoinsForPath(propertyPath: String, rootAlias: String) {
+        val parts = propertyPath.split(".")
+        if (parts.size <= 1) return // No nested path, no joins needed
 
-        for (path in paths) {
-            val parts = path.split(".")
-            if (parts.size <= 1) continue // No join needed for simple properties
+        var currentAlias = rootAlias
+        var currentEntity = aliasToEntity[currentAlias] ?: return
 
-            var currentAlias = rootAlias
-            // Process all parts except the last (which is the actual field)
-            for (i in 0 until parts.size - 1) {
-                val pathPrefix = if (i == 0) {
-                    "$rootAlias.${parts[i]}"
-                } else {
-                    val prevPath = (0 until i).joinToString(".") { parts[it] }
-                    "${joinAliases["$rootAlias.$prevPath"]}.${parts[i]}"
+        // Process all parts except the last (which is the actual field)
+        for (i in 0 until parts.size - 1) {
+            val fieldName = parts[i]
+            val joinPath = "$currentAlias.$fieldName"
+
+            // Check if we already have a join for this path
+            if (joinPathToAlias.containsKey(joinPath)) {
+                currentAlias = joinPathToAlias[joinPath]!!
+                currentEntity = aliasToEntity[currentAlias] ?: return
+                continue
+            }
+
+            // Check if this field is a relationship that needs a JOIN
+            if (entityResolver.isRelationshipField(currentEntity, fieldName)) {
+                val targetEntity = entityResolver.resolveTargetEntityName(currentEntity, fieldName)
+
+                // Optimization: if next part is the primary key of target entity and it's the last part,
+                // no JOIN is needed - the FK column already contains the ID value
+                val nextPart = parts.getOrNull(i + 1)
+                val isNextPartLast = i + 1 == parts.size - 1
+
+                if (nextPart != null && isNextPartLast && targetEntity != null) {
+                    if (entityResolver.isPrimaryKeyField(targetEntity, nextPart)) {
+                        // Skip this JOIN - FK column will be used directly
+                        break
+                    }
                 }
 
-                // Check if we already have a join for this path
-                if (!joinAliases.containsKey(pathPrefix)) {
-                    val joinAlias = generateAlias(parts[i])
-                    joinAliases[pathPrefix] = joinAlias
+                if (targetEntity != null) {
+                    val newAlias = generateAlias(fieldName)
+                    joinPathToAlias[joinPath] = newAlias
+                    aliasToEntity[newAlias] = targetEntity
 
                     joins.add(JoinClause(
                         type = JoinType.LEFT,
-                        path = PathExpression(listOf(currentAlias, parts[i])),
-                        alias = joinAlias,
+                        path = PathExpression(listOf(currentAlias, fieldName)),
+                        alias = newAlias,
                         condition = null
                     ))
+
+                    currentAlias = newAlias
+                    currentEntity = targetEntity
                 }
-                currentAlias = joinAliases[pathPrefix]!!
+            } else if (entityResolver.isEmbeddedField(currentEntity, fieldName)) {
+                // Embedded fields don't need JOINs - continue with same entity
+                continue
+            } else {
+                // Unknown field type - stop processing
+                break
             }
         }
-
-        return joins
-    }
-
-    private fun generateAlias(baseName: String): String {
-        aliasCounter++
-        return "${baseName}_$aliasCounter"
     }
 
     /**
      * Resolves a property path to use the appropriate join alias.
      *
-     * For "participants.bot.id":
-     * - Returns PathExpression(["bot_1", "id"]) assuming bot_1 is the alias for the bot join
+     * For "participants.bot.name" with generated joins:
+     * - Returns PathExpression(["bot_2", "name"])
+     *
+     * For "participants.bot.id" with FK optimization (no bot join):
+     * - Returns PathExpression(["participants_1", "bot", "id"])
+     *   The SqlConverter will resolve "bot.id" to the FK column "bot_id"
      */
     private fun resolvePropertyPath(property: String, rootAlias: String): PathExpression {
         val parts = property.split(".")
         if (parts.size == 1) {
-            // Simple property - use root alias
             return PathExpression(listOf(rootAlias, parts[0]))
         }
 
-        // Find the join alias for the path prefix (all parts except the last)
         var currentAlias = rootAlias
-        for (i in 0 until parts.size - 1) {
-            val pathPrefix = if (i == 0) {
-                "$rootAlias.${parts[i]}"
+        var partIndex = 0
+
+        // Walk through the path following joins
+        while (partIndex < parts.size - 1) {
+            val fieldName = parts[partIndex]
+            val joinPath = "$currentAlias.$fieldName"
+            val joinAlias = joinPathToAlias[joinPath]
+            if (joinAlias != null) {
+                currentAlias = joinAlias
+                partIndex++
             } else {
-                val prevParts = (0..i).map { parts[it] }
-                var lookupAlias = rootAlias
-                for (j in 0 until i) {
-                    val prevPath = "$lookupAlias.${parts[j]}"
-                    lookupAlias = joinAliases[prevPath] ?: lookupAlias
-                }
-                "$lookupAlias.${parts[i]}"
+                // No join found for this path - stop here and include remaining parts
+                break
             }
-            currentAlias = joinAliases[pathPrefix] ?: currentAlias
         }
 
-        // Return the final alias with the field name
-        return PathExpression(listOf(currentAlias, parts.last()))
+        // Include all remaining parts from where we stopped
+        val remainingParts = parts.drop(partIndex)
+        return PathExpression(listOf(currentAlias) + remainingParts)
+    }
+
+    private fun generateAlias(baseName: String): String {
+        aliasCounter++
+        return "${baseName}_$aliasCounter"
     }
 
     private fun buildSelectClause(components: DerivedQueryComponents, alias: String): SelectClause {
@@ -164,7 +201,6 @@ class DerivedQueryAstBuilder {
             )
         }
 
-        // For COUNT, distinct is handled in the aggregate function itself
         val selectDistinct = components.distinct && components.prefix == QueryPrefix.FIND
 
         return SelectClause(
@@ -194,7 +230,7 @@ class DerivedQueryAstBuilder {
                 val operator = when (condition.connector) {
                     Connector.AND -> BinaryOperator.AND
                     Connector.OR -> BinaryOperator.OR
-                    null -> BinaryOperator.AND // Default to AND
+                    null -> BinaryOperator.AND
                 }
                 BinaryExpression(result, operator, conditionExpr)
             }

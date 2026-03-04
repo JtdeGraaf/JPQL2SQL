@@ -66,6 +66,55 @@ open class EntityResolver(private val project: Project?) {
         return targetClass.name
     }
 
+    /**
+     * Checks if a field is a relationship (association) that requires a JOIN to access its properties.
+     *
+     * This includes:
+     * - `@ManyToOne` / `@OneToOne` (single-valued associations)
+     * - `@OneToMany` / `@ManyToMany` (collection-valued associations)
+     *
+     * Does NOT include `@Embedded` fields (which don't require JOINs).
+     *
+     * @return true if the field is a relationship, false otherwise
+     */
+    open fun isRelationshipField(entityName: String, fieldName: String): Boolean {
+        if (project == null) return false
+        val psiClass = findEntity(entityName) ?: return false
+        val members = PsiUtils.findAnnotatedMembers(psiClass, fieldName)
+        if (members.isEmpty()) return false
+
+        return PsiUtils.hasAnyAnnotation(members, JpaAnnotations.SINGLE_VALUED_ASSOCIATION) ||
+                PsiUtils.hasAnyAnnotation(members, JpaAnnotations.ONE_TO_MANY) ||
+                PsiUtils.hasAnyAnnotation(members, JpaAnnotations.MANY_TO_MANY)
+    }
+
+    /**
+     * Checks if a field is an embedded field (`@Embedded` or `@EmbeddedId`).
+     * Embedded fields don't require JOINs - their properties map to columns in the same table.
+     */
+    open fun isEmbeddedField(entityName: String, fieldName: String): Boolean {
+        if (project == null) return false
+        val psiClass = findEntity(entityName) ?: return false
+        val members = PsiUtils.findAnnotatedMembers(psiClass, fieldName)
+        if (members.isEmpty()) return false
+
+        return PsiUtils.hasAnyAnnotation(members, JpaAnnotations.EMBEDDED)
+    }
+
+    /**
+     * Checks if a field is the primary key of an entity (`@Id` or `@EmbeddedId`).
+     *
+     * @return true if the field has `@Id` or `@EmbeddedId` annotation
+     */
+    open fun isPrimaryKeyField(entityName: String, fieldName: String): Boolean {
+        if (project == null) return false
+        val psiClass = findEntity(entityName) ?: return false
+        val members = PsiUtils.findAnnotatedMembers(psiClass, fieldName)
+        if (members.isEmpty()) return false
+
+        return PsiUtils.hasAnyAnnotation(members, JpaAnnotations.ID)
+    }
+
     // ---- Internal resolution logic ----
 
     private fun findEntity(entityName: String): PsiClass? = entityFinder?.findEntityClass(entityName)

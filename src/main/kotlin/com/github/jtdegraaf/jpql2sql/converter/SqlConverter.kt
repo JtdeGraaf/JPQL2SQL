@@ -5,7 +5,10 @@ import com.github.jtdegraaf.jpql2sql.parser.*
 import com.intellij.openapi.project.Project
 
 /**
- * Orchestrates JPQL→SQL conversion.
+ * Converts a JPQL AST to SQL.
+ *
+ * Expects a complete JpqlQuery with all JOINs already resolved.
+ * Use [ImplicitJoinTransformer] to add implicit JOINs before calling this converter.
  *
  * Delegates expression rendering to [ExpressionConverter] and
  * JOIN generation to [JoinConverter].
@@ -29,6 +32,7 @@ class SqlConverter(
             aliasToEntity[entry.alias] = entry.entity.name
         }
 
+        // Register all joins
         for (join in query.joins) {
             val resolvedEntity = resolveJoinEntityName(join)
             aliasToEntity[join.alias] = resolvedEntity ?: JoinConverter.inferEntityFromPath(join.path)

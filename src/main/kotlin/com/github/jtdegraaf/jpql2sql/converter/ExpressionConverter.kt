@@ -176,4 +176,3 @@ class ExpressionConverter(
         return "${expr.function.name}($distinct${convert(expr.argument)})"
     }
 }
-

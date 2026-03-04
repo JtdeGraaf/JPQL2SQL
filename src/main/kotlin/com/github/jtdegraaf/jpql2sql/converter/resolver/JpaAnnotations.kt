@@ -68,5 +68,12 @@ object JpaAnnotations {
         "jakarta.persistence.Entity",
         "javax.persistence.Entity"
     )
+
+    val ID = listOf(
+        "jakarta.persistence.Id",
+        "javax.persistence.Id",
+        "jakarta.persistence.EmbeddedId",
+        "javax.persistence.EmbeddedId"
+    )
 }
 

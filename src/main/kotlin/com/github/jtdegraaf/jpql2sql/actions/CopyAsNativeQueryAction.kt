@@ -2,11 +2,11 @@ package com.github.jtdegraaf.jpql2sql.actions
 
 import com.github.jtdegraaf.jpql2sql.MyBundle
 import com.github.jtdegraaf.jpql2sql.converter.EntityResolver
+import com.github.jtdegraaf.jpql2sql.converter.ImplicitJoinTransformer
 import com.github.jtdegraaf.jpql2sql.converter.SqlConverter
 import com.github.jtdegraaf.jpql2sql.converter.dialect.getSqlDialect
 import com.github.jtdegraaf.jpql2sql.parser.JpqlParseException
 import com.github.jtdegraaf.jpql2sql.parser.JpqlParser
-import com.github.jtdegraaf.jpql2sql.parser.JpqlQuery
 import com.github.jtdegraaf.jpql2sql.repository.DerivedQueryAstBuilder
 import com.github.jtdegraaf.jpql2sql.repository.DerivedQueryParser
 import com.github.jtdegraaf.jpql2sql.settings.JpqlToSqlSettings
@@ -137,8 +137,16 @@ class CopyAsNativeQueryAction : AnAction() {
                 return
             }
 
-            val ast = DerivedQueryAstBuilder().build(components)
-            val sql = convertAstToSql(project, ast)
+            val settings = JpqlToSqlSettings.getInstance()
+            val dialect = getSqlDialect(settings.dialect)
+            val entityResolver = EntityResolver(project)
+
+            // DerivedQueryAstBuilder produces a complete AST with JOINs
+            val ast = DerivedQueryAstBuilder(entityResolver).build(components)
+
+            // Convert directly to SQL (no transformation needed)
+            val converter = SqlConverter(dialect, entityResolver, project)
+            val sql = converter.convert(ast)
             copyToClipboard(sql)
 
             showNotification(
@@ -272,25 +280,30 @@ class CopyAsNativeQueryAction : AnAction() {
         }
     }
 
+    /**
+     * Converts a JPQL string to SQL.
+     *
+     * Pipeline:
+     * 1. Parse JPQL string to AST
+     * 2. Transform AST to add implicit JOINs for relationship traversals
+     * 3. Convert transformed AST to SQL
+     */
     private fun convertJpqlToSql(project: com.intellij.openapi.project.Project, jpql: String): String {
         val settings = JpqlToSqlSettings.getInstance()
         val dialect = getSqlDialect(settings.dialect)
         val entityResolver = EntityResolver(project)
 
+        // Step 1: Parse JPQL to AST
         val parser = JpqlParser(jpql)
         val ast = parser.parse()
 
-        val converter = SqlConverter(dialect, entityResolver, project)
-        return converter.convert(ast)
-    }
+        // Step 2: Transform AST to add implicit JOINs
+        val transformer = ImplicitJoinTransformer(entityResolver)
+        val transformedAst = transformer.transform(ast)
 
-    private fun convertAstToSql(project: com.intellij.openapi.project.Project, ast: JpqlQuery): String {
-        val settings = JpqlToSqlSettings.getInstance()
-        val dialect = getSqlDialect(settings.dialect)
-        val entityResolver = EntityResolver(project)
-
+        // Step 3: Convert to SQL
         val converter = SqlConverter(dialect, entityResolver, project)
-        return converter.convert(ast)
+        return converter.convert(transformedAst)
     }
 
     private fun copyToClipboard(text: String) {

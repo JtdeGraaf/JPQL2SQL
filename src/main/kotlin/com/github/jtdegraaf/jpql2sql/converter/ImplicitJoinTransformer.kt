@@ -51,7 +51,26 @@ class ImplicitJoinTransformer(
         implicitJoins.clear()
         aliasCounter = 0
 
-        // Build initial alias-to-entity mapping
+        return transformInternal(query)
+    }
+
+    /**
+     * Internal transform that doesn't reset state - used for subqueries.
+     */
+    private fun transformInternal(query: JpqlQuery): JpqlQuery {
+        // Save current state for nested subquery processing
+        val savedAliasToEntity = aliasToEntity.toMap()
+        val savedJoinPathToAlias = joinPathToAlias.toMap()
+        val savedImplicitJoins = implicitJoins.toList()
+        val savedAliasCounter = aliasCounter
+
+        // Clear state for this query's context
+        aliasToEntity.clear()
+        joinPathToAlias.clear()
+        implicitJoins.clear()
+        aliasCounter = 0
+
+        // Build initial alias-to-entity mapping for this query
         aliasToEntity[query.from.alias] = query.from.entity.name
         for (entry in query.from.additionalEntities) {
             aliasToEntity[entry.alias] = entry.entity.name
@@ -59,6 +78,9 @@ class ImplicitJoinTransformer(
         for (join in query.joins) {
             val resolvedEntity = resolveJoinEntityName(join)
             aliasToEntity[join.alias] = resolvedEntity ?: inferEntityFromPath(join.path)
+            // Register explicit join path so we don't create duplicate implicit joins
+            val joinPathStr = join.path.parts.joinToString(".")
+            joinPathToAlias[joinPathStr] = join.alias
         }
 
         // First pass: collect all paths and generate implicit joins
@@ -70,7 +92,18 @@ class ImplicitJoinTransformer(
         // Combine explicit and implicit joins
         val allJoins = query.joins + implicitJoins
 
-        return transformedQuery.copy(joins = allJoins)
+        val result = transformedQuery.copy(joins = allJoins)
+
+        // Restore outer query state
+        aliasToEntity.clear()
+        aliasToEntity.putAll(savedAliasToEntity)
+        joinPathToAlias.clear()
+        joinPathToAlias.putAll(savedJoinPathToAlias)
+        implicitJoins.clear()
+        implicitJoins.addAll(savedImplicitJoins)
+        aliasCounter = savedAliasCounter
+
+        return result
     }
 
     /**
@@ -281,7 +314,7 @@ class ImplicitJoinTransformer(
                 expr.whenClauses.map { WhenClause(rewriteExpression(it.condition), rewriteExpression(it.result)) },
                 expr.elseExpression?.let { rewriteExpression(it) }
             )
-            is SubqueryExpression -> SubqueryExpression(transform(expr.query))
+            is SubqueryExpression -> SubqueryExpression(transformInternal(expr.query))
             is InListExpression -> InListExpression(expr.elements.map { rewriteExpression(it) })
             is BetweenExpression -> BetweenExpression(
                 rewriteExpression(expr.lower),
@@ -292,7 +325,7 @@ class ImplicitJoinTransformer(
                 expr.distinct,
                 rewriteExpression(expr.argument)
             )
-            is ExistsExpression -> ExistsExpression(transform(expr.subquery))
+            is ExistsExpression -> ExistsExpression(transformInternal(expr.subquery))
             is CastExpression -> CastExpression(rewriteExpression(expr.expression), expr.targetType)
             is LiteralExpression, is ParameterExpression, is UnparsedFragment -> expr
         }
@@ -305,6 +338,10 @@ class ImplicitJoinTransformer(
      * - Finds join alias for "e.participants" -> "participants_1"
      * - Finds join alias for "participants_1.bot" -> "bot_2"
      * - Returns path ["bot_2", "id"]
+     *
+     * FK Optimization: When accessing the primary key of a relationship (e.g., `u.department.id`)
+     * and NO join exists for that relationship, don't rewrite - let EntityResolver resolve it
+     * to the FK column (e.g., `u.department_id`). If a join exists, use it for consistency.
      */
     private fun rewritePath(path: PathExpression): PathExpression {
         if (path.parts.size < 2) return path
@@ -319,9 +356,12 @@ class ImplicitJoinTransformer(
 
             val joinAlias = joinPathToAlias[joinPath]
             if (joinAlias != null) {
+                // Join exists - use it for consistency
                 currentAlias = joinAlias
                 partIndex++
             } else {
+                // No join exists - check for FK optimization
+                // If accessing .id on a relationship, don't rewrite - let EntityResolver handle FK
                 break
             }
         }

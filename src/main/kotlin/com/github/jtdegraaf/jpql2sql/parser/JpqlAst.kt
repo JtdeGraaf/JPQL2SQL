@@ -130,7 +130,8 @@ enum class BinaryOperator {
     IN, NOT_IN,
     BETWEEN, NOT_BETWEEN,
     IS_NULL, IS_NOT_NULL,
-    MEMBER_OF, NOT_MEMBER_OF
+    MEMBER_OF, NOT_MEMBER_OF,
+    ADD, SUBTRACT, MULTIPLY, DIVIDE
 }
 
 data class UnaryExpression(

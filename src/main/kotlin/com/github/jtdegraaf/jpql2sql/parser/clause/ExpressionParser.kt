@@ -131,8 +131,8 @@ class ExpressionParser(
         var left = parseMultiplicativeExpression()
         while (true) {
             left = when {
-                ctx.match(TokenType.PLUS) -> BinaryExpression(left, BinaryOperator.EQ, parseMultiplicativeExpression())
-                ctx.match(TokenType.MINUS) -> BinaryExpression(left, BinaryOperator.EQ, parseMultiplicativeExpression())
+                ctx.match(TokenType.PLUS) -> BinaryExpression(left, BinaryOperator.ADD, parseMultiplicativeExpression())
+                ctx.match(TokenType.MINUS) -> BinaryExpression(left, BinaryOperator.SUBTRACT, parseMultiplicativeExpression())
                 else -> break
             }
         }
@@ -143,8 +143,8 @@ class ExpressionParser(
         var left = parseUnaryExpression()
         while (true) {
             left = when {
-                ctx.match(TokenType.STAR) -> BinaryExpression(left, BinaryOperator.EQ, parseUnaryExpression())
-                ctx.match(TokenType.SLASH) -> BinaryExpression(left, BinaryOperator.EQ, parseUnaryExpression())
+                ctx.match(TokenType.STAR) -> BinaryExpression(left, BinaryOperator.MULTIPLY, parseUnaryExpression())
+                ctx.match(TokenType.SLASH) -> BinaryExpression(left, BinaryOperator.DIVIDE, parseUnaryExpression())
                 else -> break
             }
         }

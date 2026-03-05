@@ -146,6 +146,13 @@ class SelectClauseParser(
             return FieldProjection(literalExpr, alias)
         }
 
+        // Handle subqueries in SELECT clause: (SELECT ...)
+        if (ctx.check(TokenType.LEFT_PARENTHESES)) {
+            val fullExpr = expr.parseExpression()
+            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
+            return FieldProjection(fullExpr, alias)
+        }
+
         val path = expr.parsePathExpression()
 
         // Check for parameterless native function call: single identifier followed by ()
@@ -158,12 +165,48 @@ class SelectClauseParser(
             return FieldProjection(funcExpr, alias)
         }
 
+        // Check for arithmetic operators after path expression (e.g., u.age + 5)
+        if (isArithmeticOperator(ctx.current.type)) {
+            val fullExpr = parseRemainingArithmetic(path)
+            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
+            return FieldProjection(fullExpr, alias)
+        }
+
         val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
         return FieldProjection(path, alias)
     }
 
     private fun isComparisonOperator(type: TokenType): Boolean {
         return type in setOf(TokenType.EQUALS, TokenType.NOT_EQUALS, TokenType.LESS_THAN, TokenType.LESS_THAN_OR_EQUAL, TokenType.GREATER_THAN, TokenType.GREATER_THAN_OR_EQUAL)
+    }
+
+    private fun isArithmeticOperator(type: TokenType): Boolean {
+        return type in setOf(TokenType.PLUS, TokenType.MINUS, TokenType.STAR, TokenType.SLASH)
+    }
+
+    private fun parseRemainingArithmetic(left: Expression): Expression {
+        var result = left
+        while (isArithmeticOperator(ctx.current.type)) {
+            val op = when {
+                ctx.match(TokenType.PLUS) -> BinaryOperator.ADD
+                ctx.match(TokenType.MINUS) -> BinaryOperator.SUBTRACT
+                ctx.match(TokenType.STAR) -> BinaryOperator.MULTIPLY
+                ctx.match(TokenType.SLASH) -> BinaryOperator.DIVIDE
+                else -> break
+            }
+            // Parse the right operand - could be a path, literal, or parenthesized expression
+            val right = when {
+                ctx.check(TokenType.LEFT_PARENTHESES) -> expr.parseExpression()
+                ctx.check(TokenType.NUMBER_LITERAL) -> {
+                    val v = ctx.current.text.toLongOrNull() ?: ctx.current.text.toDoubleOrNull() ?: ctx.current.text
+                    ctx.advance()
+                    LiteralExpression(v, LiteralType.NUMBER)
+                }
+                else -> expr.parsePathExpression()
+            }
+            result = BinaryExpression(result, op, right)
+        }
+        return result
     }
 
     private fun parseRemainingComparison(left: Expression): Expression {

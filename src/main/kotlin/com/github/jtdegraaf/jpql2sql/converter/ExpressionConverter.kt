@@ -90,6 +90,10 @@ class ExpressionConverter(
             BinaryOperator.IS_NOT_NULL -> "$left IS NOT NULL"
             BinaryOperator.MEMBER_OF -> "$left IN $right"
             BinaryOperator.NOT_MEMBER_OF -> "$left NOT IN $right"
+            BinaryOperator.ADD -> "($left + $right)"
+            BinaryOperator.SUBTRACT -> "($left - $right)"
+            BinaryOperator.MULTIPLY -> "($left * $right)"
+            BinaryOperator.DIVIDE -> "($left / $right)"
         }
     }
 

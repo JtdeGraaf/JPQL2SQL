@@ -11,6 +11,10 @@
 - Support for Spring Data JPA derived query methods (`findByName`, `findByAgeGreaterThan`, `countByStatus`, etc.)
 - Implicit JOIN generation for relationship traversals in `@Query` JPQL (e.g., `u.department.name` automatically generates `LEFT JOIN departments`)
 - FK optimization: accessing `.id` on `@ManyToOne`/`@OneToOne` relationships uses the FK column directly without generating a JOIN
+- Support for String Concatenation || Operator
+- Support for EXTRACT(field FROM date) Function
+- Support for Enhanced TRIM Syntax
+- Support for FULL OUTER JOIN and CROSS JOIN
 
 ## [1.1.0]
 

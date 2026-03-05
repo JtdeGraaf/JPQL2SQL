@@ -14,7 +14,7 @@
 - Support for String Concatenation || Operator
 - Support for EXTRACT(field FROM date) Function
 - Support for Enhanced TRIM Syntax
-- Support for FULL OUTER JOIN and CROSS JOIN
+- Support for FULL OUTER JOIN and CROSS JOIN 
 
 ## [1.1.0]
 

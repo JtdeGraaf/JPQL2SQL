@@ -344,4 +344,67 @@ class DialectComparisonTest : BaseJpaTestCase() {
             assertTrue("${dialect.name} should have division", sql.contains("(u.age / 2)"))
         }
     }
+
+    // ============ EXTRACT Function Dialect Tests ============
+
+    fun testExtractYearPostgres() {
+        val sql = convertWith("SELECT EXTRACT(YEAR FROM u.createdAt) FROM User u", PostgreSqlDialect)
+        assertTrue("PostgreSQL uses EXTRACT(YEAR FROM ...)", sql.contains("EXTRACT(YEAR FROM u.created_at)"))
+    }
+
+    fun testExtractYearSqlServer() {
+        val sql = convertWith("SELECT EXTRACT(YEAR FROM u.createdAt) FROM User u", SqlServerDialect)
+        assertTrue("SQL Server uses DATEPART(year, ...)", sql.contains("DATEPART(year, u.created_at)"))
+    }
+
+    fun testExtractMonthSqlServer() {
+        val sql = convertWith("SELECT EXTRACT(MONTH FROM u.createdAt) FROM User u", SqlServerDialect)
+        assertTrue("SQL Server uses DATEPART(month, ...)", sql.contains("DATEPART(month, u.created_at)"))
+    }
+
+    fun testExtractAllDialects() {
+        val jpql = "SELECT EXTRACT(DAY FROM u.createdAt) FROM User u"
+
+        // Most dialects use EXTRACT
+        listOf(PostgreSqlDialect, MySqlDialect, OracleDialect, H2Dialect).forEach { dialect ->
+            val sql = convertWith(jpql, dialect)
+            assertTrue("${dialect.name} should use EXTRACT", sql.contains("EXTRACT(DAY FROM"))
+        }
+
+        // SQL Server uses DATEPART
+        val sqlServerSql = convertWith(jpql, SqlServerDialect)
+        assertTrue("SQL Server should use DATEPART", sqlServerSql.contains("DATEPART(day,"))
+    }
+
+    // ============ Concat Operator || Tests ============
+
+    fun testConcatOperatorPostgres() {
+        val sql = convertWith("SELECT u.name || ' - ' || u.email FROM User u", PostgreSqlDialect)
+        assertTrue("PostgreSQL uses || for concat operator", sql.contains("u.name || ' - '") && sql.contains("|| u.email"))
+    }
+
+    fun testConcatOperatorMySql() {
+        val sql = convertWith("SELECT u.name || ' - ' || u.email FROM User u", MySqlDialect)
+        assertTrue("MySQL uses CONCAT function for || operator", sql.contains("CONCAT("))
+    }
+
+    // ============ Enhanced TRIM Tests ============
+
+    fun testTrimLeadingAllDialects() {
+        val jpql = "SELECT TRIM(LEADING '0' FROM u.name) FROM User u"
+
+        listOf(PostgreSqlDialect, MySqlDialect, OracleDialect, SqlServerDialect, H2Dialect).forEach { dialect ->
+            val sql = convertWith(jpql, dialect)
+            assertTrue("${dialect.name} should have TRIM LEADING", sql.contains("TRIM(LEADING '0' FROM"))
+        }
+    }
+
+    fun testTrimTrailingAllDialects() {
+        val jpql = "SELECT TRIM(TRAILING ' ' FROM u.name) FROM User u"
+
+        listOf(PostgreSqlDialect, MySqlDialect, OracleDialect, SqlServerDialect, H2Dialect).forEach { dialect ->
+            val sql = convertWith(jpql, dialect)
+            assertTrue("${dialect.name} should have TRIM TRAILING", sql.contains("TRIM(TRAILING ' ' FROM"))
+        }
+    }
 }

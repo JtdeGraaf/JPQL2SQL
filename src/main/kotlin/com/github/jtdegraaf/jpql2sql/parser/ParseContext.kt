@@ -95,7 +95,7 @@ class ParseContext(input: String) {
          *  RPAREN is included to properly terminate subquery parsing. */
         private val CLAUSE_KEYWORDS = setOf(
             TokenType.SELECT, TokenType.FROM, TokenType.WHERE,
-            TokenType.JOIN, TokenType.INNER, TokenType.LEFT, TokenType.RIGHT,
+            TokenType.JOIN, TokenType.INNER, TokenType.LEFT, TokenType.RIGHT, TokenType.FULL, TokenType.CROSS,
             TokenType.ORDER, TokenType.GROUP, TokenType.HAVING,
             TokenType.ON, TokenType.FETCH, TokenType.OFFSET,
             TokenType.END_OF_FILE, TokenType.RIGHT_PARENTHESES

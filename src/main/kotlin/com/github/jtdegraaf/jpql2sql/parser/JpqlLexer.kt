@@ -126,6 +126,10 @@ class JpqlLexer(private val input: String) {
                 pos += 2
                 Token(TokenType.GREATER_THAN_OR_EQUAL, twoChar, start)
             }
+            twoChar == "||" -> {
+                pos += 2
+                Token(TokenType.CONCAT_OP, "||", start)
+            }
             c == '=' -> {
                 pos++
                 Token(TokenType.EQUALS, "=", start)
@@ -198,6 +202,8 @@ class JpqlLexer(private val input: String) {
             "LEFT" to TokenType.LEFT,
             "RIGHT" to TokenType.RIGHT,
             "OUTER" to TokenType.OUTER,
+            "FULL" to TokenType.FULL,
+            "CROSS" to TokenType.CROSS,
             "ON" to TokenType.ON,
             "ORDER" to TokenType.ORDER,
             "BY" to TokenType.BY,
@@ -250,7 +256,17 @@ class JpqlLexer(private val input: String) {
             "EMPTY" to TokenType.EMPTY,
             "EXISTS" to TokenType.EXISTS,
             "FUNCTION" to TokenType.FUNCTION,
-            "CAST" to TokenType.CAST
+            "CAST" to TokenType.CAST,
+            "EXTRACT" to TokenType.EXTRACT,
+            "YEAR" to TokenType.YEAR,
+            "MONTH" to TokenType.MONTH,
+            "DAY" to TokenType.DAY,
+            "HOUR" to TokenType.HOUR,
+            "MINUTE" to TokenType.MINUTE,
+            "SECOND" to TokenType.SECOND,
+            "LEADING" to TokenType.LEADING,
+            "TRAILING" to TokenType.TRAILING,
+            "BOTH" to TokenType.BOTH
         )
     }
 }
@@ -265,7 +281,7 @@ enum class TokenType {
     // Keywords
     SELECT, DISTINCT, FROM, WHERE, AND, OR, NOT,
     IN, BETWEEN, LIKE, IS, NULL, TRUE, FALSE,
-    JOIN, INNER, LEFT, RIGHT, OUTER, ON, FETCH, NEXT, ROW, ROWS, ONLY, OFFSET,
+    JOIN, INNER, LEFT, RIGHT, OUTER, FULL, CROSS, ON, FETCH, NEXT, ROW, ROWS, ONLY, OFFSET,
     ORDER, BY, ASC, DESC, NULLS, FIRST, LAST,
     GROUP, HAVING,
     COUNT, SUM, AVG, MIN, MAX,
@@ -277,10 +293,12 @@ enum class TokenType {
     ABS, SQRT, MOD, SIZE, INDEX,
     CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP,
     COALESCE, NULLIF, TREAT, EMPTY, EXISTS, FUNCTION, CAST,
+    EXTRACT, YEAR, MONTH, DAY, HOUR, MINUTE, SECOND,
+    LEADING, TRAILING, BOTH,
 
     // Operators
     EQUALS, NOT_EQUALS, LESS_THAN, LESS_THAN_OR_EQUAL, GREATER_THAN, GREATER_THAN_OR_EQUAL,
-    PLUS, MINUS, STAR, SLASH,
+    PLUS, MINUS, STAR, SLASH, CONCAT_OP,
 
     // Punctuation
     LEFT_PARENTHESES, RIGHT_PARENTHESES, COMMA, DOT,
@@ -301,7 +319,7 @@ enum class TokenType {
     companion object {
         private val NON_KEYWORD_TOKENS = setOf(
             // Operators
-            EQUALS, NOT_EQUALS, LESS_THAN, LESS_THAN_OR_EQUAL, GREATER_THAN, GREATER_THAN_OR_EQUAL, PLUS, MINUS, STAR, SLASH,
+            EQUALS, NOT_EQUALS, LESS_THAN, LESS_THAN_OR_EQUAL, GREATER_THAN, GREATER_THAN_OR_EQUAL, PLUS, MINUS, STAR, SLASH, CONCAT_OP,
             // Punctuation
             LEFT_PARENTHESES, RIGHT_PARENTHESES, COMMA, DOT,
             // Literals and identifiers

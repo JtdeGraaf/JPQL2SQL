@@ -67,7 +67,7 @@ data class JoinClause(
 ) : JpqlNode()
 
 enum class JoinType {
-    INNER, LEFT, RIGHT
+    INNER, LEFT, RIGHT, FULL, CROSS
 }
 
 data class WhereClause(
@@ -131,7 +131,8 @@ enum class BinaryOperator {
     BETWEEN, NOT_BETWEEN,
     IS_NULL, IS_NOT_NULL,
     MEMBER_OF, NOT_MEMBER_OF,
-    ADD, SUBTRACT, MULTIPLY, DIVIDE
+    ADD, SUBTRACT, MULTIPLY, DIVIDE,
+    CONCAT
 }
 
 data class UnaryExpression(
@@ -213,5 +214,32 @@ data class CastExpression(
  */
 data class UnparsedFragment(
     val text: String
+) : Expression()
+
+/**
+ * Date/time field for EXTRACT function.
+ */
+enum class ExtractField { YEAR, MONTH, DAY, HOUR, MINUTE, SECOND }
+
+/**
+ * Represents EXTRACT(field FROM source) expression.
+ */
+data class ExtractExpression(
+    val field: ExtractField,
+    val source: Expression
+) : Expression()
+
+/**
+ * Trim specification for enhanced TRIM syntax.
+ */
+enum class TrimMode { BOTH, LEADING, TRAILING }
+
+/**
+ * Represents TRIM([LEADING|TRAILING|BOTH] [char] FROM source) expression.
+ */
+data class TrimExpression(
+    val mode: TrimMode,
+    val trimCharacter: String?,  // null = whitespace
+    val source: Expression
 ) : Expression()
 

@@ -35,6 +35,8 @@ class ExpressionConverter(
         is AggregateExpression -> convertAggregate(expr)
         is ExistsExpression -> "EXISTS (${subqueryConverter(expr.subquery)})"
         is CastExpression -> "CAST(${convert(expr.expression)} AS ${dialect.mapJpqlType(expr.targetType)})"
+        is ExtractExpression -> dialect.extract(expr.field.name, convert(expr.source))
+        is TrimExpression -> dialect.trim(convert(expr.source), expr.mode.name, expr.trimCharacter)
         is UnparsedFragment -> "/* UNPARSED: ${expr.text} */"
     }
 
@@ -94,6 +96,7 @@ class ExpressionConverter(
             BinaryOperator.SUBTRACT -> "($left - $right)"
             BinaryOperator.MULTIPLY -> "($left * $right)"
             BinaryOperator.DIVIDE -> "($left / $right)"
+            BinaryOperator.CONCAT -> dialect.concat(listOf(left, right))
         }
     }
 

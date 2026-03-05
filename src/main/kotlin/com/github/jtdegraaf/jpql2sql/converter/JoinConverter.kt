@@ -23,6 +23,8 @@ class JoinConverter(
             JoinType.INNER -> "INNER JOIN"
             JoinType.LEFT -> "LEFT JOIN"
             JoinType.RIGHT -> "RIGHT JOIN"
+            JoinType.FULL -> "FULL OUTER JOIN"
+            JoinType.CROSS -> "CROSS JOIN"
         }
 
         // Try to resolve join info from the relationship annotation
@@ -46,6 +48,11 @@ class JoinConverter(
         if (tableName == null) {
             val entityName = inferEntityFromPath(join.path)
             tableName = entityResolver.resolveTableName(entityName)
+        }
+
+        // CROSS JOIN has no ON condition
+        if (join.type == JoinType.CROSS) {
+            return "$keyword $tableName ${join.alias}"
         }
 
         // Explicit ON condition

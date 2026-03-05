@@ -26,4 +26,6 @@ object SqlServerDialect : SqlDialect {
         else "SUBSTRING($str, $start, LEN($str))"
 
     override fun booleanLiteral(value: Boolean): String = if (value) "1" else "0"
+
+    override fun extract(field: String, source: String): String = "DATEPART(${field.lowercase()}, $source)"
 }

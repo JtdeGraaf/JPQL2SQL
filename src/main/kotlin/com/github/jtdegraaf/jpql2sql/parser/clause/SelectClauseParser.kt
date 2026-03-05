@@ -132,6 +132,20 @@ class SelectClauseParser(
             return FieldProjection(castExpr, alias)
         }
 
+        // Handle EXTRACT expressions in SELECT clause
+        if (ctx.check(TokenType.EXTRACT)) {
+            val extractExpr = expr.parseExpression()
+            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
+            return FieldProjection(extractExpr, alias)
+        }
+
+        // Handle TRIM expressions in SELECT clause
+        if (ctx.check(TokenType.TRIM)) {
+            val trimExpr = expr.parseExpression()
+            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
+            return FieldProjection(trimExpr, alias)
+        }
+
         // Handle EXISTS and NOT EXISTS in SELECT clause
         if (ctx.check(TokenType.EXISTS) || (ctx.check(TokenType.NOT) && ctx.peekNext()?.type == TokenType.EXISTS)) {
             val existsExpr = expr.parseExpression()
@@ -181,7 +195,7 @@ class SelectClauseParser(
     }
 
     private fun isArithmeticOperator(type: TokenType): Boolean {
-        return type in setOf(TokenType.PLUS, TokenType.MINUS, TokenType.STAR, TokenType.SLASH)
+        return type in setOf(TokenType.PLUS, TokenType.MINUS, TokenType.STAR, TokenType.SLASH, TokenType.CONCAT_OP)
     }
 
     private fun parseRemainingArithmetic(left: Expression): Expression {
@@ -192,6 +206,7 @@ class SelectClauseParser(
                 ctx.match(TokenType.MINUS) -> BinaryOperator.SUBTRACT
                 ctx.match(TokenType.STAR) -> BinaryOperator.MULTIPLY
                 ctx.match(TokenType.SLASH) -> BinaryOperator.DIVIDE
+                ctx.match(TokenType.CONCAT_OP) -> BinaryOperator.CONCAT
                 else -> break
             }
             // Parse the right operand - could be a path, literal, or parenthesized expression
@@ -201,6 +216,11 @@ class SelectClauseParser(
                     val v = ctx.current.text.toLongOrNull() ?: ctx.current.text.toDoubleOrNull() ?: ctx.current.text
                     ctx.advance()
                     LiteralExpression(v, LiteralType.NUMBER)
+                }
+                ctx.check(TokenType.STRING_LITERAL) -> {
+                    val v = ctx.current.text
+                    ctx.advance()
+                    LiteralExpression(v, LiteralType.STRING)
                 }
                 else -> expr.parsePathExpression()
             }

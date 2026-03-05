@@ -19,6 +19,13 @@ interface SqlDialect {
 
     fun trim(str: String): String = "TRIM($str)"
 
+    fun trim(source: String, mode: String, trimChar: String?): String =
+        if (trimChar != null) "TRIM($mode '$trimChar' FROM $source)"
+        else if (mode == "BOTH") "TRIM($source)"
+        else "TRIM($mode FROM $source)"
+
+    fun extract(field: String, source: String): String = "EXTRACT($field FROM $source)"
+
     fun coalesce(expressions: List<String>): String = "COALESCE(${expressions.joinToString(", ")})"
 
     fun nullif(expr1: String, expr2: String): String = "NULLIF($expr1, $expr2)"

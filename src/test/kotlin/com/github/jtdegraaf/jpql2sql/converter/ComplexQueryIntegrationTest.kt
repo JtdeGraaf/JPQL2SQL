@@ -392,4 +392,104 @@ class ComplexQueryIntegrationTest : BaseJpaTestCase() {
             """.trimIndent())
         )
     }
+
+    // ============ Test Case 13: String Concatenation Operator || ============
+
+    fun testConcatOperator() {
+        assertEquals(
+            "SELECT u.name || ' ' || u.email FROM users u",
+            convert("SELECT u.name || ' ' || u.email FROM User u")
+        )
+    }
+
+    fun testConcatOperatorInWhere() {
+        assertEquals(
+            "SELECT u FROM users u WHERE u.name || '@' || u.email = :combined",
+            convert("SELECT u FROM User u WHERE u.name || '@' || u.email = :combined")
+        )
+    }
+
+    // ============ Test Case 14: EXTRACT Function ============
+
+    fun testExtractYear() {
+        assertEquals(
+            "SELECT EXTRACT(YEAR FROM u.created_at) FROM users u",
+            convert("SELECT EXTRACT(YEAR FROM u.createdAt) FROM User u")
+        )
+    }
+
+    fun testExtractMonth() {
+        assertEquals(
+            "SELECT EXTRACT(MONTH FROM u.created_at) FROM users u",
+            convert("SELECT EXTRACT(MONTH FROM u.createdAt) FROM User u")
+        )
+    }
+
+    fun testExtractInWhere() {
+        assertEquals(
+            "SELECT u FROM users u WHERE EXTRACT(YEAR FROM u.created_at) = 2024",
+            convert("SELECT u FROM User u WHERE EXTRACT(YEAR FROM u.createdAt) = 2024")
+        )
+    }
+
+    // ============ Test Case 15: Enhanced TRIM Syntax ============
+
+    fun testTrimLeading() {
+        assertEquals(
+            "SELECT TRIM(LEADING '0' FROM u.status) FROM users u",
+            convert("SELECT TRIM(LEADING '0' FROM u.status) FROM User u")
+        )
+    }
+
+    fun testTrimTrailing() {
+        assertEquals(
+            "SELECT TRIM(TRAILING ' ' FROM u.name) FROM users u",
+            convert("SELECT TRIM(TRAILING ' ' FROM u.name) FROM User u")
+        )
+    }
+
+    fun testTrimBothWithChar() {
+        assertEquals(
+            "SELECT TRIM(BOTH 'x' FROM u.name) FROM users u",
+            convert("SELECT TRIM(BOTH 'x' FROM u.name) FROM User u")
+        )
+    }
+
+    fun testTrimBothWithoutChar() {
+        // TRIM(BOTH FROM x) simplifies to TRIM(x) as BOTH is the default
+        assertEquals(
+            "SELECT TRIM(u.name) FROM users u",
+            convert("SELECT TRIM(BOTH FROM u.name) FROM User u")
+        )
+    }
+
+    fun testTrimSimple() {
+        assertEquals(
+            "SELECT TRIM(u.name) FROM users u",
+            convert("SELECT TRIM(u.name) FROM User u")
+        )
+    }
+
+    // ============ Test Case 16: FULL OUTER JOIN and CROSS JOIN ============
+
+    fun testFullOuterJoin() {
+        assertEquals(
+            "SELECT u, d.name FROM users u FULL OUTER JOIN departments d ON u.department_id = d.id",
+            convert("SELECT u, d.name FROM User u FULL OUTER JOIN u.department d")
+        )
+    }
+
+    fun testFullJoinWithoutOuter() {
+        assertEquals(
+            "SELECT u, d.name FROM users u FULL OUTER JOIN departments d ON u.department_id = d.id",
+            convert("SELECT u, d.name FROM User u FULL JOIN u.department d")
+        )
+    }
+
+    fun testCrossJoin() {
+        assertEquals(
+            "SELECT u, d FROM users u CROSS JOIN departments d",
+            convert("SELECT u, d FROM User u CROSS JOIN Department d")
+        )
+    }
 }

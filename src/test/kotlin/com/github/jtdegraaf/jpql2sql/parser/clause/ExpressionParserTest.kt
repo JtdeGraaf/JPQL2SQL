@@ -118,7 +118,7 @@ class ExpressionParserTest {
     @Test fun testConcat() { val f = parseExpr("CONCAT(u.first, ' ', u.last)") as FunctionCallExpression; assertEquals("CONCAT", f.name); assertEquals(3, f.arguments.size) }
     @Test fun testSubstring() { val f = parseExpr("SUBSTRING(u.name, 1, 3)") as FunctionCallExpression; assertEquals("SUBSTRING", f.name); assertEquals(3, f.arguments.size) }
     @Test fun testLength() { val f = parseExpr("LENGTH(u.name)") as FunctionCallExpression; assertEquals("LENGTH", f.name); assertEquals(1, f.arguments.size) }
-    @Test fun testTrim() { val f = parseExpr("TRIM(u.name)") as FunctionCallExpression; assertEquals("TRIM", f.name); assertEquals(1, f.arguments.size) }
+    @Test fun testTrim() { val t = parseExpr("TRIM(u.name)") as TrimExpression; assertEquals(TrimMode.BOTH, t.mode); assertNull(t.trimCharacter); assertTrue(t.source is PathExpression) }
     @Test fun testAbs() { val f = parseExpr("ABS(u.balance)") as FunctionCallExpression; assertEquals("ABS", f.name); assertEquals(1, f.arguments.size) }
     @Test fun testSqrt() { val f = parseExpr("SQRT(u.value)") as FunctionCallExpression; assertEquals("SQRT", f.name); assertEquals(1, f.arguments.size) }
     @Test fun testMod() { val f = parseExpr("MOD(u.id, 2)") as FunctionCallExpression; assertEquals("MOD", f.name); assertEquals(2, f.arguments.size) }

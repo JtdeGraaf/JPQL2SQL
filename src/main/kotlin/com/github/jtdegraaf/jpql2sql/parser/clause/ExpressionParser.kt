@@ -133,6 +133,7 @@ class ExpressionParser(
             left = when {
                 ctx.match(TokenType.PLUS) -> BinaryExpression(left, BinaryOperator.ADD, parseMultiplicativeExpression())
                 ctx.match(TokenType.MINUS) -> BinaryExpression(left, BinaryOperator.SUBTRACT, parseMultiplicativeExpression())
+                ctx.match(TokenType.CONCAT_OP) -> BinaryExpression(left, BinaryOperator.CONCAT, parseMultiplicativeExpression())
                 else -> break
             }
         }
@@ -187,6 +188,8 @@ class ExpressionParser(
         if (ctx.check(TokenType.EXISTS)) return parseExistsExpression()
         if (ctx.check(TokenType.FUNCTION)) return parseJpqlFunction()
         if (ctx.check(TokenType.CAST)) return parseCastExpression()
+        if (ctx.check(TokenType.EXTRACT)) return parseExtractExpression()
+        if (ctx.check(TokenType.TRIM)) return parseTrimExpression()
         if (isFunctionToken(ctx.current.type)) return parseFunctionCall()
         if (isAggregateToken(ctx.current.type)) return parseAggregateInExpression()
         if (ctx.check(TokenType.CASE)) return parseCaseExpression()
@@ -268,6 +271,60 @@ class ExpressionParser(
         return CastExpression(expression, targetType)
     }
 
+    /**
+     * Parses EXTRACT(field FROM source) expression.
+     */
+    private fun parseExtractExpression(): ExtractExpression {
+        ctx.expect(TokenType.EXTRACT)
+        ctx.expect(TokenType.LEFT_PARENTHESES)
+        val field = when {
+            ctx.match(TokenType.YEAR) -> ExtractField.YEAR
+            ctx.match(TokenType.MONTH) -> ExtractField.MONTH
+            ctx.match(TokenType.DAY) -> ExtractField.DAY
+            ctx.match(TokenType.HOUR) -> ExtractField.HOUR
+            ctx.match(TokenType.MINUTE) -> ExtractField.MINUTE
+            ctx.match(TokenType.SECOND) -> ExtractField.SECOND
+            else -> throw ctx.parseError("Expected date/time field (YEAR, MONTH, DAY, HOUR, MINUTE, SECOND)")
+        }
+        ctx.expect(TokenType.FROM)
+        val source = parseExpression()
+        ctx.expect(TokenType.RIGHT_PARENTHESES)
+        return ExtractExpression(field, source)
+    }
+
+    /**
+     * Parses TRIM([LEADING|TRAILING|BOTH] [char] FROM source) or simple TRIM(source) expression.
+     */
+    private fun parseTrimExpression(): TrimExpression {
+        ctx.expect(TokenType.TRIM)
+        ctx.expect(TokenType.LEFT_PARENTHESES)
+
+        val mode = when {
+            ctx.match(TokenType.LEADING) -> TrimMode.LEADING
+            ctx.match(TokenType.TRAILING) -> TrimMode.TRAILING
+            ctx.match(TokenType.BOTH) -> TrimMode.BOTH
+            else -> null
+        }
+
+        if (mode != null) {
+            val trimChar = if (ctx.check(TokenType.STRING_LITERAL)) {
+                val char = ctx.current.text
+                ctx.advance()
+                char
+            } else null
+
+            ctx.expect(TokenType.FROM)
+            val source = parseExpression()
+            ctx.expect(TokenType.RIGHT_PARENTHESES)
+            return TrimExpression(mode, trimChar, source)
+        }
+
+        // Simple TRIM(expr)
+        val source = parseExpression()
+        ctx.expect(TokenType.RIGHT_PARENTHESES)
+        return TrimExpression(TrimMode.BOTH, null, source)
+    }
+
     private fun parseAggregateInExpression(): Expression {
         val func = when (ctx.current.type) {
             TokenType.COUNT -> AggregateFunction.COUNT
@@ -304,7 +361,7 @@ class ExpressionParser(
 
     companion object {
         fun isFunctionToken(type: TokenType): Boolean = type in setOf(
-            TokenType.UPPER, TokenType.LOWER, TokenType.TRIM, TokenType.LENGTH,
+            TokenType.UPPER, TokenType.LOWER, TokenType.LENGTH,
             TokenType.CONCAT, TokenType.SUBSTRING, TokenType.LOCATE,
             TokenType.ABS, TokenType.SQRT, TokenType.MOD, TokenType.SIZE, TokenType.INDEX,
             TokenType.CURRENT_DATE, TokenType.CURRENT_TIME, TokenType.CURRENT_TIMESTAMP,

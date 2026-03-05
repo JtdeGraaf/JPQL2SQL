@@ -1,6 +1,7 @@
 # JPQL2SQL
 
 ![Build](https://github.com/JtdeGraaf/JPQL2SQL/workflows/Build/badge.svg)
+[![codecov](https://codecov.io/gh/JtdeGraaf/JPQL2SQL/branch/main/graph/badge.svg)](https://codecov.io/gh/JtdeGraaf/JPQL2SQL)
 [![Version](https://img.shields.io/jetbrains/plugin/v/30434.svg)](https://plugins.jetbrains.com/plugin/30434)
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/30434.svg)](https://plugins.jetbrains.com/plugin/30434)
 

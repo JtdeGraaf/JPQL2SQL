@@ -76,6 +76,12 @@ class ExpressionConverter(
             return convertTypeComparison(expr.left as TypeExpression, expr.operator, expr.right)
         }
 
+        // Special handling for AttributeConverter boolean conversions
+        if (expr.operator == BinaryOperator.EQ || expr.operator == BinaryOperator.NE) {
+            val convertedComparison = tryConvertWithAttributeConverter(expr)
+            if (convertedComparison != null) return convertedComparison
+        }
+
         val left = convertWithPrecedence(expr.left, expr.operator)
         val right = convertWithPrecedence(expr.right, expr.operator)
 
@@ -219,5 +225,41 @@ class ExpressionConverter(
         }
 
         return "$discriminatorCol $op $discriminatorValue"
+    }
+
+    /**
+     * Tries to convert a comparison with AttributeConverter support.
+     * Handles cases like `field = true` where field has @Convert(converter = BooleanToStringConverter.class)
+     * and invokes the actual converter to convert the value.
+     *
+     * @return the converted SQL string, or null if no conversion applies
+     */
+    private fun tryConvertWithAttributeConverter(expr: BinaryExpression): String? {
+        // Check if one side is a path and the other is a literal
+        val (pathExpr, literal) = when {
+            expr.left is PathExpression && expr.right is LiteralExpression -> {
+                expr.left as PathExpression to expr.right as LiteralExpression
+            }
+            expr.right is PathExpression && expr.left is LiteralExpression -> {
+                expr.right as PathExpression to expr.left as LiteralExpression
+            }
+            else -> return null
+        }
+
+        if (pathExpr.parts.size < 2) return null
+
+        val alias = pathExpr.parts[0]
+        val fieldPath = pathExpr.parts.drop(1)
+        val entityName = aliasToEntity[alias] ?: return null
+        val fieldName = fieldPath.last()
+
+        // Get the literal value
+        val literalValue = literal.value ?: return null
+        val convertedValue = entityResolver.convertValueWithConverter(entityName, fieldName, literalValue) ?: return null
+
+        val columnSql = convertPath(pathExpr)
+        val op = if (expr.operator == BinaryOperator.EQ) "=" else "!="
+
+        return "$columnSql $op $convertedValue"
     }
 }

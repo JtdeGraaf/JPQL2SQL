@@ -158,6 +158,24 @@ open class EntityResolver(private val project: Project?) {
         return psiClass.name ?: entityName // Default is the entity class name
     }
 
+    // ---- AttributeConverter support ----
+
+    private val converterResolver: AttributeConverterResolver? = project?.let { AttributeConverterResolver(it) }
+
+    /**
+     * Converts a value using the AttributeConverter for the field.
+     * Delegates to AttributeConverterResolver for the actual conversion.
+     *
+     * @return the converted value as a SQL literal, or null if no conversion applies
+     */
+    open fun convertValueWithConverter(entityName: String, fieldName: String, value: Any): String? {
+        if (converterResolver == null) return null
+        val psiClass = findEntity(entityName) ?: return null
+        val members = PsiUtils.findAnnotatedMembers(psiClass, fieldName)
+        val converterClass = converterResolver.getConverterClass(members) ?: return null
+        return converterResolver.convertValue(converterClass, value)
+    }
+
     // ---- Internal resolution logic ----
 
     private fun findEntity(entityName: String): PsiClass? = entityFinder?.findEntityClass(entityName)

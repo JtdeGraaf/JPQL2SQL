@@ -84,6 +84,55 @@ object PsiUtils {
     }
 
     /**
+     * Gets the class name from a class literal annotation attribute.
+     * For example, for `@Convert(converter = BooleanToStringConverter.class)`,
+     * calling this with "converter" returns "BooleanToStringConverter".
+     */
+    fun getAnnotationClassValue(annotation: PsiAnnotation, attributeName: String): String? {
+        val value = annotation.findAttributeValue(attributeName) ?: return null
+        val text = value.text
+        // Remove .class suffix and return the class name
+        return text.removeSuffix(".class").trim()
+    }
+
+    /**
+     * Gets the PsiClass referenced by a class literal annotation attribute.
+     * For example, for `@Convert(converter = BooleanToStringConverter.class)`,
+     * calling this with "converter" returns the PsiClass for BooleanToStringConverter.
+     */
+    fun getAnnotationClassReference(annotation: PsiAnnotation, attributeName: String, project: Project): PsiClass? {
+        val value = annotation.findAttributeValue(attributeName) ?: return null
+
+        // Try to resolve as a class literal expression
+        if (value is PsiClassObjectAccessExpression) {
+            val typeElement = value.operand
+            val type = typeElement.type
+            if (type is PsiClassType) {
+                return type.resolve()
+            }
+        }
+
+        // Fallback: try to find the class by name
+        val className = getAnnotationClassValue(annotation, attributeName) ?: return null
+        val facade = JavaPsiFacade.getInstance(project)
+        val scope = GlobalSearchScope.allScope(project)
+
+        // Try fully qualified name first
+        facade.findClass(className, scope)?.let { return it }
+
+        // Try with package from the annotation's containing file
+        val containingFile = annotation.containingFile
+        if (containingFile is PsiJavaFile) {
+            val packageName = containingFile.packageName
+            if (packageName.isNotEmpty()) {
+                facade.findClass("$packageName.$className", scope)?.let { return it }
+            }
+        }
+
+        return null
+    }
+
+    /**
      * Get the value of a named attribute from the first nested annotation in an array attribute.
      * e.g. for `@JoinTable(joinColumns = @JoinColumn(name = "x"))`, this extracts `"x"`.
      */

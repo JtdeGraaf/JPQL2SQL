@@ -247,6 +247,7 @@ class ComplexQueryIntegrationTest : BaseJpaTestCase() {
                 private String programmingLanguage;
             }
         """.trimIndent())
+
     }
 
     /**

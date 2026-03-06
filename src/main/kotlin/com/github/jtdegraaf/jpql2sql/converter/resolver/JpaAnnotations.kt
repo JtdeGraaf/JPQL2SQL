@@ -99,5 +99,15 @@ object JpaAnnotations {
         "jakarta.persistence.DiscriminatorValue",
         "javax.persistence.DiscriminatorValue"
     )
+
+    val CONVERT = listOf(
+        "jakarta.persistence.Convert",
+        "javax.persistence.Convert"
+    )
+
+    val CONVERTER = listOf(
+        "jakarta.persistence.Converter",
+        "javax.persistence.Converter"
+    )
 }
 

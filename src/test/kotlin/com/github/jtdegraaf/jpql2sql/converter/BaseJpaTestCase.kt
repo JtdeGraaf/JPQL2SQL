@@ -58,6 +58,11 @@ abstract class BaseJpaTestCase : LightJavaCodeInsightFixtureTestCase() {
         myFixture.addClass("package jakarta.persistence; public @interface Inheritance { InheritanceType strategy() default InheritanceType.SINGLE_TABLE; }")
         myFixture.addClass("package jakarta.persistence; public @interface DiscriminatorColumn { String name() default \"DTYPE\"; }")
         myFixture.addClass("package jakarta.persistence; public @interface DiscriminatorValue { String value(); }")
+
+        // AttributeConverter annotations
+        myFixture.addClass("package jakarta.persistence; public interface AttributeConverter<X, Y> { Y convertToDatabaseColumn(X attribute); X convertToEntityAttribute(Y dbData); }")
+        myFixture.addClass("package jakarta.persistence; public @interface Converter { boolean autoApply() default false; }")
+        myFixture.addClass("package jakarta.persistence; public @interface Convert { Class converter() default void.class; String attributeName() default \"\"; boolean disableConversion() default false; }")
     }
 
     protected fun convertWithPostgres(jpql: String): String {

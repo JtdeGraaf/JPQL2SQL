@@ -7,6 +7,8 @@ import com.intellij.psi.PsiClass
  *
  * Checks `@Table(name = "...")` first, then `@Entity(name = "...")`,
  * and falls back to snake_case of the class name.
+ *
+ * For SINGLE_TABLE inheritance, subclasses use the root entity's table name.
  */
 class TableResolver {
 
@@ -18,22 +20,50 @@ class TableResolver {
             if (!subquery.isNullOrBlank()) return "($subquery)"
         }
 
+        // For SINGLE_TABLE inheritance, find the root entity that defines the table
+        val rootClass = findInheritanceRoot(psiClass)
+        val targetClass = rootClass ?: psiClass
+
         // Check @Table(name = "...")
-        val tableAnnotation = PsiUtils.findAnnotation(listOf(psiClass), JpaAnnotations.TABLE)
+        val tableAnnotation = PsiUtils.findAnnotation(listOf(targetClass), JpaAnnotations.TABLE)
         if (tableAnnotation != null) {
             val name = PsiUtils.getAnnotationStringValue(tableAnnotation, "name")
             if (!name.isNullOrBlank()) return name
         }
 
         // Check @Entity(name = "...")
-        val entityAnnotation = PsiUtils.findAnnotation(listOf(psiClass), JpaAnnotations.ENTITY)
+        val entityAnnotation = PsiUtils.findAnnotation(listOf(targetClass), JpaAnnotations.ENTITY)
         if (entityAnnotation != null) {
             val name = PsiUtils.getAnnotationStringValue(entityAnnotation, "name")
             if (!name.isNullOrBlank()) return name
         }
 
         // Default: snake_case of class name
-        return NamingUtils.toSnakeCase(psiClass.name ?: "unknown")
+        return NamingUtils.toSnakeCase(targetClass.name ?: "unknown")
+    }
+
+    /**
+     * Finds the root entity in a SINGLE_TABLE inheritance hierarchy.
+     * Returns null if the entity is not part of such a hierarchy.
+     */
+    private fun findInheritanceRoot(psiClass: PsiClass): PsiClass? {
+        var current: PsiClass? = psiClass
+        var root: PsiClass? = null
+
+        while (current != null) {
+            // Check if this class has @Inheritance(strategy = SINGLE_TABLE)
+            val inheritanceAnnotation = PsiUtils.findAnnotation(listOf(current), JpaAnnotations.INHERITANCE)
+            if (inheritanceAnnotation != null) {
+                val strategy = PsiUtils.getAnnotationEnumValue(inheritanceAnnotation, "strategy")
+                // SINGLE_TABLE is the default if @Inheritance is present without explicit strategy
+                if (strategy == null || strategy == "SINGLE_TABLE") {
+                    root = current
+                }
+            }
+            current = current.superClass
+        }
+
+        return root
     }
 }
 

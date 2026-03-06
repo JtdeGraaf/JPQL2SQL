@@ -52,6 +52,12 @@ abstract class BaseJpaTestCase : LightJavaCodeInsightFixtureTestCase() {
 
         // Hibernate-specific annotations
         myFixture.addClass("package org.hibernate.annotations; public @interface Subselect { String value(); }")
+
+        // Inheritance annotations
+        myFixture.addClass("package jakarta.persistence; public enum InheritanceType { SINGLE_TABLE, JOINED, TABLE_PER_CLASS }")
+        myFixture.addClass("package jakarta.persistence; public @interface Inheritance { InheritanceType strategy() default InheritanceType.SINGLE_TABLE; }")
+        myFixture.addClass("package jakarta.persistence; public @interface DiscriminatorColumn { String name() default \"DTYPE\"; }")
+        myFixture.addClass("package jakarta.persistence; public @interface DiscriminatorValue { String value(); }")
     }
 
     protected fun convertWithPostgres(jpql: String): String {

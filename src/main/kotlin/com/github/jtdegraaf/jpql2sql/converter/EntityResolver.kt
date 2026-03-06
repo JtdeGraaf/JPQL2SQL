@@ -115,6 +115,49 @@ open class EntityResolver(private val project: Project?) {
         return PsiUtils.hasAnyAnnotation(members, JpaAnnotations.ID)
     }
 
+    /**
+     * Gets the discriminator column name for an entity in an inheritance hierarchy.
+     * Looks for @DiscriminatorColumn on the entity or its superclass.
+     *
+     * @return the discriminator column name, or "DTYPE" as the JPA default
+     */
+    open fun getDiscriminatorColumn(entityName: String): String {
+        if (project == null) return "DTYPE"
+        val psiClass = findEntity(entityName) ?: return "DTYPE"
+
+        // Check this class and superclasses for @DiscriminatorColumn
+        var current: PsiClass? = psiClass
+        while (current != null) {
+            val annotation = PsiUtils.findAnnotation(listOf(current), JpaAnnotations.DISCRIMINATOR_COLUMN)
+            if (annotation != null) {
+                val name = PsiUtils.getAnnotationStringValue(annotation, "name")
+                if (!name.isNullOrBlank()) return name
+            }
+            current = current.superClass
+        }
+
+        return "DTYPE" // JPA default
+    }
+
+    /**
+     * Gets the discriminator value for an entity.
+     * Looks for @DiscriminatorValue on the entity.
+     *
+     * @return the discriminator value, or the entity class name as default
+     */
+    open fun getDiscriminatorValue(entityName: String): String {
+        if (project == null) return entityName
+        val psiClass = findEntity(entityName) ?: return entityName
+
+        val annotation = PsiUtils.findAnnotation(listOf(psiClass), JpaAnnotations.DISCRIMINATOR_VALUE)
+        if (annotation != null) {
+            val value = PsiUtils.getAnnotationStringValue(annotation, "value")
+            if (!value.isNullOrBlank()) return value
+        }
+
+        return psiClass.name ?: entityName // Default is the entity class name
+    }
+
     // ---- Internal resolution logic ----
 
     private fun findEntity(entityName: String): PsiClass? = entityFinder?.findEntityClass(entityName)

@@ -190,6 +190,7 @@ class ExpressionParser(
         if (ctx.check(TokenType.CAST)) return parseCastExpression()
         if (ctx.check(TokenType.EXTRACT)) return parseExtractExpression()
         if (ctx.check(TokenType.TRIM)) return parseTrimExpression()
+        if (ctx.check(TokenType.TYPE)) return parseTypeExpression()
         if (isFunctionToken(ctx.current.type)) return parseFunctionCall()
         if (isAggregateToken(ctx.current.type)) return parseAggregateInExpression()
         if (ctx.check(TokenType.CASE)) return parseCaseExpression()
@@ -323,6 +324,17 @@ class ExpressionParser(
         val source = parseExpression()
         ctx.expect(TokenType.RIGHT_PARENTHESES)
         return TrimExpression(TrimMode.BOTH, null, source)
+    }
+
+    /**
+     * Parses TYPE(entity) expression for polymorphic queries.
+     */
+    private fun parseTypeExpression(): TypeExpression {
+        ctx.expect(TokenType.TYPE)
+        ctx.expect(TokenType.LEFT_PARENTHESES)
+        val alias = ctx.expectIdentifierOrKeyword()
+        ctx.expect(TokenType.RIGHT_PARENTHESES)
+        return TypeExpression(alias)
     }
 
     private fun parseAggregateInExpression(): Expression {

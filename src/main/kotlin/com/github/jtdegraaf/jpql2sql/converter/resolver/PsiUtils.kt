@@ -72,6 +72,18 @@ object PsiUtils {
     }
 
     /**
+     * Gets the simple name of an enum value from an annotation attribute.
+     * For example, for `@Inheritance(strategy = InheritanceType.SINGLE_TABLE)`,
+     * calling this with "strategy" returns "SINGLE_TABLE".
+     */
+    fun getAnnotationEnumValue(annotation: PsiAnnotation, attributeName: String): String? {
+        val value = annotation.findAttributeValue(attributeName) ?: return null
+        val text = value.text
+        // Handle qualified names like "InheritanceType.SINGLE_TABLE" -> "SINGLE_TABLE"
+        return text.substringAfterLast(".")
+    }
+
+    /**
      * Get the value of a named attribute from the first nested annotation in an array attribute.
      * e.g. for `@JoinTable(joinColumns = @JoinColumn(name = "x"))`, this extracts `"x"`.
      */

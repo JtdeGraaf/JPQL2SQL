@@ -171,6 +171,7 @@ class ImplicitJoinTransformer(
             is CastExpression -> collectPathsFromExpression(expr.expression, paths)
             is ExtractExpression -> collectPathsFromExpression(expr.source, paths)
             is TrimExpression -> collectPathsFromExpression(expr.source, paths)
+            is TypeExpression -> {} // TYPE(alias) doesn't need path collection
             is LiteralExpression, is ParameterExpression, is UnparsedFragment -> {}
         }
     }
@@ -331,6 +332,7 @@ class ImplicitJoinTransformer(
             is CastExpression -> CastExpression(rewriteExpression(expr.expression), expr.targetType)
             is ExtractExpression -> ExtractExpression(expr.field, rewriteExpression(expr.source))
             is TrimExpression -> TrimExpression(expr.mode, expr.trimCharacter, rewriteExpression(expr.source))
+            is TypeExpression -> expr // TYPE(alias) doesn't need rewriting
             is LiteralExpression, is ParameterExpression, is UnparsedFragment -> expr
         }
     }

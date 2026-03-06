@@ -244,6 +244,14 @@ data class TrimExpression(
 ) : Expression()
 
 /**
+ * Represents TYPE(entity) expression for polymorphic queries.
+ * Used to filter by entity type in inheritance hierarchies.
+ */
+data class TypeExpression(
+    val entityAlias: String
+) : Expression()
+
+/**
  * Set operation type for compound queries.
  */
 enum class SetOperation {

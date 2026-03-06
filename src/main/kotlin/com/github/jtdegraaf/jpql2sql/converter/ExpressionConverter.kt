@@ -37,6 +37,7 @@ class ExpressionConverter(
         is CastExpression -> "CAST(${convert(expr.expression)} AS ${dialect.mapJpqlType(expr.targetType)})"
         is ExtractExpression -> dialect.extract(expr.field.name, convert(expr.source))
         is TrimExpression -> dialect.trim(convert(expr.source), expr.mode.name, expr.trimCharacter)
+        is TypeExpression -> convertTypeExpression(expr)
         is UnparsedFragment -> "/* UNPARSED: ${expr.text} */"
     }
 
@@ -70,6 +71,11 @@ class ExpressionConverter(
     }
 
     private fun convertBinary(expr: BinaryExpression): String {
+        // Special handling for TYPE() comparisons
+        if (expr.left is TypeExpression && (expr.operator == BinaryOperator.EQ || expr.operator == BinaryOperator.NE)) {
+            return convertTypeComparison(expr.left as TypeExpression, expr.operator, expr.right)
+        }
+
         val left = convertWithPrecedence(expr.left, expr.operator)
         val right = convertWithPrecedence(expr.right, expr.operator)
 
@@ -181,5 +187,37 @@ class ExpressionConverter(
     private fun convertAggregate(expr: AggregateExpression): String {
         val distinct = if (expr.distinct) "DISTINCT " else ""
         return "${expr.function.name}($distinct${convert(expr.argument)})"
+    }
+
+    /**
+     * Converts TYPE(alias) expression to discriminator column reference.
+     */
+    private fun convertTypeExpression(expr: TypeExpression): String {
+        val entityName = aliasToEntity[expr.entityAlias]
+        val discriminatorColumn = if (entityName != null) {
+            entityResolver.getDiscriminatorColumn(entityName)
+        } else {
+            "DTYPE"
+        }
+        return "${expr.entityAlias}.$discriminatorColumn"
+    }
+
+    /**
+     * Converts TYPE(alias) = EntityName or TYPE(alias) != EntityName comparisons.
+     */
+    private fun convertTypeComparison(typeExpr: TypeExpression, operator: BinaryOperator, rightExpr: Expression): String {
+        val discriminatorCol = convertTypeExpression(typeExpr)
+        val op = if (operator == BinaryOperator.EQ) "=" else "!="
+
+        // The right side should be an entity name (PathExpression with single part)
+        val discriminatorValue = when (rightExpr) {
+            is PathExpression -> {
+                val entityName = rightExpr.parts.joinToString(".")
+                "'${entityResolver.getDiscriminatorValue(entityName)}'"
+            }
+            else -> convert(rightExpr)
+        }
+
+        return "$discriminatorCol $op $discriminatorValue"
     }
 }

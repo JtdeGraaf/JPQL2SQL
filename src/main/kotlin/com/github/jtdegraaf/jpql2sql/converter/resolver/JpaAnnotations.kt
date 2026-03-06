@@ -84,5 +84,20 @@ object JpaAnnotations {
     val SUBSELECT = listOf(
         "org.hibernate.annotations.Subselect"
     )
+
+    val INHERITANCE = listOf(
+        "jakarta.persistence.Inheritance",
+        "javax.persistence.Inheritance"
+    )
+
+    val DISCRIMINATOR_COLUMN = listOf(
+        "jakarta.persistence.DiscriminatorColumn",
+        "javax.persistence.DiscriminatorColumn"
+    )
+
+    val DISCRIMINATOR_VALUE = listOf(
+        "jakarta.persistence.DiscriminatorValue",
+        "javax.persistence.DiscriminatorValue"
+    )
 }
 

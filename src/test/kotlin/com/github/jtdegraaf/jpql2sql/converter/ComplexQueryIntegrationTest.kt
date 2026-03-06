@@ -199,6 +199,54 @@ class ComplexQueryIntegrationTest : BaseJpaTestCase() {
                 private String status;
             }
         """.trimIndent())
+
+        // Inheritance hierarchy: Employee (base) -> Manager, Developer
+        myFixture.addClass("""
+            package com.example;
+
+            import jakarta.persistence.*;
+
+            @Entity
+            @Table(name = "employees")
+            @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+            @DiscriminatorColumn(name = "employee_type")
+            public class Employee {
+                @Id
+                private Long id;
+
+                @Column(name = "name")
+                private String name;
+
+                @Column(name = "salary")
+                private java.math.BigDecimal salary;
+            }
+        """.trimIndent())
+
+        myFixture.addClass("""
+            package com.example;
+
+            import jakarta.persistence.*;
+
+            @Entity
+            @DiscriminatorValue("MGR")
+            public class Manager extends Employee {
+                @Column(name = "department")
+                private String department;
+            }
+        """.trimIndent())
+
+        myFixture.addClass("""
+            package com.example;
+
+            import jakarta.persistence.*;
+
+            @Entity
+            @DiscriminatorValue("DEV")
+            public class Developer extends Employee {
+                @Column(name = "programming_language")
+                private String programmingLanguage;
+            }
+        """.trimIndent())
     }
 
     /**
@@ -623,5 +671,47 @@ class ComplexQueryIntegrationTest : BaseJpaTestCase() {
         val ast = JpqlParser(jpql).parseCompound()
         val resolver = EntityResolver(project)
         return SqlConverter(PostgreSqlDialect, resolver).convert(ast)
+    }
+
+    // ============ Test Case 20: @Inheritance and TYPE() Expressions ============
+
+    fun testTypeExpressionEquals() {
+        // TYPE(e) = Manager should convert to discriminator column comparison
+        assertEquals(
+            "SELECT e FROM employees e WHERE e.employee_type = 'MGR'",
+            convert("SELECT e FROM Employee e WHERE TYPE(e) = Manager")
+        )
+    }
+
+    fun testTypeExpressionNotEquals() {
+        // TYPE(e) != Developer should convert to discriminator column comparison
+        assertEquals(
+            "SELECT e FROM employees e WHERE e.employee_type != 'DEV'",
+            convert("SELECT e FROM Employee e WHERE TYPE(e) != Developer")
+        )
+    }
+
+    fun testTypeExpressionWithOtherConditions() {
+        // TYPE() combined with other conditions
+        assertEquals(
+            "SELECT e FROM employees e WHERE e.employee_type = 'MGR' AND e.salary > 100000",
+            convert("SELECT e FROM Employee e WHERE TYPE(e) = Manager AND e.salary > 100000")
+        )
+    }
+
+    fun testInheritedEntityQuery() {
+        // Query using subclass entity directly
+        assertEquals(
+            "SELECT m FROM employees m WHERE m.department = :dept",
+            convert("SELECT m FROM Manager m WHERE m.department = :dept")
+        )
+    }
+
+    fun testInheritedEntityWithBaseFields() {
+        // Query subclass but use base class fields
+        assertEquals(
+            "SELECT d.name, d.salary, d.programming_language FROM employees d WHERE d.salary > 50000",
+            convert("SELECT d.name, d.salary, d.programmingLanguage FROM Developer d WHERE d.salary > 50000")
+        )
     }
 }

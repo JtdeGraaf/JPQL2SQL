@@ -261,6 +261,7 @@ class JpqlLexer(private val input: String) {
             "EXISTS" to TokenType.EXISTS,
             "FUNCTION" to TokenType.FUNCTION,
             "CAST" to TokenType.CAST,
+            "TYPE" to TokenType.TYPE,
             "EXTRACT" to TokenType.EXTRACT,
             "YEAR" to TokenType.YEAR,
             "MONTH" to TokenType.MONTH,
@@ -297,7 +298,7 @@ enum class TokenType {
     UPPER, LOWER, TRIM, LENGTH, CONCAT, SUBSTRING, LOCATE,
     ABS, SQRT, MOD, SIZE, INDEX,
     CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP,
-    COALESCE, NULLIF, TREAT, EMPTY, EXISTS, FUNCTION, CAST,
+    COALESCE, NULLIF, TREAT, EMPTY, EXISTS, FUNCTION, CAST, TYPE,
     EXTRACT, YEAR, MONTH, DAY, HOUR, MINUTE, SECOND,
     LEADING, TRAILING, BOTH,
 

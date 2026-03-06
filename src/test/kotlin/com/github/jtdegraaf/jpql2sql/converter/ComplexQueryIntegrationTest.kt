@@ -715,4 +715,38 @@ class ComplexQueryIntegrationTest : BaseJpaTestCase() {
             convert("SELECT d.name, d.salary, d.programmingLanguage FROM Developer d WHERE d.salary > 50000")
         )
     }
+
+    // ============ Test Case 21: Collection-Valued Parameters ============
+
+    fun testInCollectionParameter() {
+        // IN :collectionParam without parentheses
+        assertEquals(
+            "SELECT u FROM users u WHERE u.status IN :statuses",
+            convert("SELECT u FROM User u WHERE u.status IN :statuses")
+        )
+    }
+
+    fun testNotInCollectionParameter() {
+        // NOT IN :collectionParam
+        assertEquals(
+            "SELECT u FROM users u WHERE u.id NOT IN :excludedIds",
+            convert("SELECT u FROM User u WHERE u.id NOT IN :excludedIds")
+        )
+    }
+
+    fun testInCollectionPositionalParameter() {
+        // IN ?1 positional parameter
+        assertEquals(
+            "SELECT u FROM users u WHERE u.status IN ?1",
+            convert("SELECT u FROM User u WHERE u.status IN ?1")
+        )
+    }
+
+    fun testCollectionParameterWithOtherConditions() {
+        // Collection parameter combined with other conditions
+        assertEquals(
+            "SELECT u FROM users u WHERE u.status IN :statuses AND u.age > 18",
+            convert("SELECT u FROM User u WHERE u.status IN :statuses AND u.age > 18")
+        )
+    }
 }

@@ -80,6 +80,30 @@ class ExpressionParserTest {
 
     @Test fun testNotIn() = assertEquals(BinaryOperator.NOT_IN, (parseExpr("u.status NOT IN ('X')") as BinaryExpression).operator)
 
+    @Test
+    fun testInCollectionNamedParam() {
+        val expr = parseExpr("u.status IN :statuses") as BinaryExpression
+        assertEquals(BinaryOperator.IN, expr.operator)
+        val param = expr.right as ParameterExpression
+        assertEquals("statuses", param.name)
+    }
+
+    @Test
+    fun testInCollectionPositionalParam() {
+        val expr = parseExpr("u.id IN ?1") as BinaryExpression
+        assertEquals(BinaryOperator.IN, expr.operator)
+        val param = expr.right as ParameterExpression
+        assertEquals(1, param.position)
+    }
+
+    @Test
+    fun testNotInCollectionParam() {
+        val expr = parseExpr("u.status NOT IN :excluded") as BinaryExpression
+        assertEquals(BinaryOperator.NOT_IN, expr.operator)
+        val param = expr.right as ParameterExpression
+        assertEquals("excluded", param.name)
+    }
+
     // ──────────── BETWEEN / NOT BETWEEN ─────────────────
 
     @Test

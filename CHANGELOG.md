@@ -15,6 +15,7 @@
 - `TYPE(alias)` expression support for polymorphic queries (e.g., `WHERE TYPE(e) = Manager`)
 - `@AttributeConverter` support with automatic literal value conversion (e.g., Boolean to 'Y'/'N' or 1/0)
 - Subclass entities using SINGLE_TABLE inheritance automatically resolve to the parent's table
+- Collection-valued parameters support (`IN :collectionParam` without parentheses)
 
 ## [1.2.0]
 

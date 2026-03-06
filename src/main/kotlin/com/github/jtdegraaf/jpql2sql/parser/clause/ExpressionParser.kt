@@ -80,8 +80,21 @@ class ExpressionParser(
         val notIn = ctx.current.type == TokenType.NOT && ctx.peekNext()?.type == TokenType.IN
         if (notIn) ctx.advance()
         if (ctx.match(TokenType.IN)) {
-            ctx.expect(TokenType.LEFT_PARENTHESES)
             val operator = if (notIn) BinaryOperator.NOT_IN else BinaryOperator.IN
+
+            // Collection-valued parameter: IN :param or IN ?1 (without parentheses)
+            if (ctx.check(TokenType.NAMED_PARAM)) {
+                val name = ctx.current.text
+                ctx.advance()
+                return BinaryExpression(left, operator, ParameterExpression(name, null))
+            }
+            if (ctx.check(TokenType.POSITIONAL_PARAM)) {
+                val pos = ctx.current.text.toIntOrNull() ?: 0
+                ctx.advance()
+                return BinaryExpression(left, operator, ParameterExpression(null, pos))
+            }
+
+            ctx.expect(TokenType.LEFT_PARENTHESES)
             if (ctx.check(TokenType.SELECT)) {
                 val subquery = subqueryParser()
                 ctx.expect(TokenType.RIGHT_PARENTHESES)

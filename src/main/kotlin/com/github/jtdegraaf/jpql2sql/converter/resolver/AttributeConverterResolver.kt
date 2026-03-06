@@ -31,6 +31,15 @@ class AttributeConverterResolver(private val project: Project?) {
     }
 
     /**
+     * Result wrapper for converter invocation.
+     * Distinguishes between successful invocation (with nullable result) and invocation failure.
+     */
+    private sealed class InvocationResult {
+        data class Success(val value: Any?) : InvocationResult()
+        object Failure : InvocationResult()
+    }
+
+    /**
      * Converts a value using the AttributeConverter.
      * First tries runtime invocation via reflection, then falls back to PSI analysis.
      *
@@ -40,22 +49,23 @@ class AttributeConverterResolver(private val project: Project?) {
      */
     fun convertValue(converterClass: PsiClass, value: Any): String? {
         // Try runtime invocation first
-        val runtimeResult = invokeConverterAtRuntime(converterClass, value)
-        if (runtimeResult != null) return runtimeResult
-
-        // Fall back to PSI analysis
-        return extractConversionFromPsi(converterClass, value)
+        return when (val result = invokeConverterAtRuntime(converterClass, value)) {
+            is InvocationResult.Success -> formatAsSqlLiteral(result.value)
+            is InvocationResult.Failure -> extractConversionFromPsi(converterClass, value)
+        }
     }
 
     /**
      * Invokes the converter's convertToDatabaseColumn method at runtime using reflection.
+     * Returns Success with the result (which may be null) if invocation succeeds,
+     * or Failure if invocation fails.
      */
-    private fun invokeConverterAtRuntime(converterPsiClass: PsiClass, value: Any): String? {
+    private fun invokeConverterAtRuntime(converterPsiClass: PsiClass, value: Any): InvocationResult {
         try {
-            val qualifiedName = converterPsiClass.qualifiedName ?: return null
+            val qualifiedName = converterPsiClass.qualifiedName ?: return InvocationResult.Failure
 
             // Get the current thread's classloader
-            val classLoader = Thread.currentThread().contextClassLoader ?: return null
+            val classLoader = Thread.currentThread().contextClassLoader ?: return InvocationResult.Failure
 
             // Load the converter class
             val converterJavaClass = classLoader.loadClass(qualifiedName)
@@ -65,14 +75,14 @@ class AttributeConverterResolver(private val project: Project?) {
 
             // Find and invoke the convertToDatabaseColumn method
             val method = converterJavaClass.methods.find { it.name == "convertToDatabaseColumn" }
-                ?: return null
+                ?: return InvocationResult.Failure
 
             val result = method.invoke(converterInstance, value)
 
-            return formatAsSqlLiteral(result)
+            return InvocationResult.Success(result)
         } catch (e: Exception) {
             // Reflection failed, will fall back to PSI analysis
-            return null
+            return InvocationResult.Failure
         }
     }
 

@@ -48,6 +48,10 @@ abstract class BaseJpaTestCase : LightJavaCodeInsightFixtureTestCase() {
 
         // Other
         myFixture.addClass("package jakarta.persistence; public @interface Enumerated {}")
+        myFixture.addClass("package jakarta.persistence; public @interface IdClass { Class value(); }")
+
+        // Hibernate-specific annotations
+        myFixture.addClass("package org.hibernate.annotations; public @interface Subselect { String value(); }")
     }
 
     protected fun convertWithPostgres(jpql: String): String {

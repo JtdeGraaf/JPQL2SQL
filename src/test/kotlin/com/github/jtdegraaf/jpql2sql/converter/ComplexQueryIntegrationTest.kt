@@ -138,6 +138,67 @@ class ComplexQueryIntegrationTest : BaseJpaTestCase() {
                 private User user;
             }
         """.trimIndent())
+
+        // @IdClass composite key entity
+        myFixture.addClass("""
+            package com.example;
+
+            import java.io.Serializable;
+
+            public class OrderItemId implements Serializable {
+                private Long orderId;
+                private Long productId;
+            }
+        """.trimIndent())
+
+        myFixture.addClass("""
+            package com.example;
+
+            import jakarta.persistence.*;
+
+            @Entity
+            @Table(name = "order_items")
+            @IdClass(OrderItemId.class)
+            public class OrderItem {
+                @Id
+                @Column(name = "order_id")
+                private Long orderId;
+
+                @Id
+                @Column(name = "product_id")
+                private Long productId;
+
+                @Column(name = "quantity")
+                private Integer quantity;
+
+                @Column(name = "price")
+                private java.math.BigDecimal price;
+            }
+        """.trimIndent())
+
+        // @Subselect Hibernate entity
+        myFixture.addClass("""
+            package com.example;
+
+            import jakarta.persistence.*;
+            import org.hibernate.annotations.Subselect;
+
+            @Entity
+            @Subselect("SELECT id, name, email, status FROM users WHERE status = 'ACTIVE'")
+            public class ActiveUser {
+                @Id
+                private Long id;
+
+                @Column(name = "name")
+                private String name;
+
+                @Column(name = "email")
+                private String email;
+
+                @Column(name = "status")
+                private String status;
+            }
+        """.trimIndent())
     }
 
     /**
@@ -490,6 +551,38 @@ class ComplexQueryIntegrationTest : BaseJpaTestCase() {
         assertEquals(
             "SELECT u, d FROM users u CROSS JOIN departments d",
             convert("SELECT u, d FROM User u CROSS JOIN Department d")
+        )
+    }
+
+    // ============ Test Case 17: @IdClass Composite Key ============
+
+    fun testIdClassCompositeKey() {
+        assertEquals(
+            "SELECT oi FROM order_items oi WHERE oi.order_id = :orderId AND oi.product_id = :productId",
+            convert("SELECT oi FROM OrderItem oi WHERE oi.orderId = :orderId AND oi.productId = :productId")
+        )
+    }
+
+    fun testIdClassWithAggregates() {
+        assertEquals(
+            "SELECT oi.order_id, SUM(oi.quantity) FROM order_items oi GROUP BY oi.order_id",
+            convert("SELECT oi.orderId, SUM(oi.quantity) FROM OrderItem oi GROUP BY oi.orderId")
+        )
+    }
+
+    // ============ Test Case 18: @Subselect Hibernate Annotation ============
+
+    fun testSubselectEntity() {
+        assertEquals(
+            "SELECT au FROM (SELECT id, name, email, status FROM users WHERE status = 'ACTIVE') au",
+            convert("SELECT au FROM ActiveUser au")
+        )
+    }
+
+    fun testSubselectWithWhere() {
+        assertEquals(
+            "SELECT au FROM (SELECT id, name, email, status FROM users WHERE status = 'ACTIVE') au WHERE au.email LIKE :pattern",
+            convert("SELECT au FROM ActiveUser au WHERE au.email LIKE :pattern")
         )
     }
 }

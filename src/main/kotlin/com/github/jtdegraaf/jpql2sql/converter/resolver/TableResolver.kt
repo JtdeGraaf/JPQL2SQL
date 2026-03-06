@@ -11,6 +11,13 @@ import com.intellij.psi.PsiClass
 class TableResolver {
 
     fun resolve(psiClass: PsiClass): String {
+        // Check @Subselect("SELECT ...") - Hibernate annotation for mapping to a subquery
+        val subselectAnnotation = PsiUtils.findAnnotation(listOf(psiClass), JpaAnnotations.SUBSELECT)
+        if (subselectAnnotation != null) {
+            val subquery = PsiUtils.getAnnotationStringValue(subselectAnnotation, "value")
+            if (!subquery.isNullOrBlank()) return "($subquery)"
+        }
+
         // Check @Table(name = "...")
         val tableAnnotation = PsiUtils.findAnnotation(listOf(psiClass), JpaAnnotations.TABLE)
         if (tableAnnotation != null) {

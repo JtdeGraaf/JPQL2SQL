@@ -75,5 +75,14 @@ object JpaAnnotations {
         "jakarta.persistence.EmbeddedId",
         "javax.persistence.EmbeddedId"
     )
+
+    val ID_CLASS = listOf(
+        "jakarta.persistence.IdClass",
+        "javax.persistence.IdClass"
+    )
+
+    val SUBSELECT = listOf(
+        "org.hibernate.annotations.Subselect"
+    )
 }
 

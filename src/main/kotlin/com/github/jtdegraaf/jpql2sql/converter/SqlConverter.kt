@@ -23,6 +23,15 @@ class SqlConverter(
     private lateinit var exprConverter: ExpressionConverter
     private lateinit var joinConverter: JoinConverter
 
+    /**
+     * Converts a JPQL node (either a simple query or compound query) to SQL.
+     */
+    fun convert(node: JpqlNode): String = when (node) {
+        is JpqlQuery -> convert(node)
+        is CompoundQuery -> convertCompound(node)
+        else -> throw IllegalArgumentException("Unsupported node type: ${node::class}")
+    }
+
     fun convert(query: JpqlQuery): String {
         aliasToEntity.clear()
         aliasToEntity[query.from.alias] = query.from.entity.name
@@ -56,6 +65,20 @@ class SqlConverter(
         }
 
         return SqlFormatter.format(project, sql)
+    }
+
+    private fun convertCompound(compound: CompoundQuery): String {
+        val leftSql = convert(compound.left)
+        val rightSql = convert(compound.right)
+        val op = when (compound.operation) {
+            SetOperation.UNION -> "UNION"
+            SetOperation.UNION_ALL -> "UNION ALL"
+            SetOperation.INTERSECT -> "INTERSECT"
+            SetOperation.INTERSECT_ALL -> "INTERSECT ALL"
+            SetOperation.EXCEPT -> "EXCEPT"
+            SetOperation.EXCEPT_ALL -> "EXCEPT ALL"
+        }
+        return SqlFormatter.format(project, "$leftSql $op $rightSql")
     }
 
     private fun convertSelect(select: SelectClause): String {

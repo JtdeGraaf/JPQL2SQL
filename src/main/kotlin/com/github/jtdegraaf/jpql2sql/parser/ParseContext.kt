@@ -98,6 +98,7 @@ class ParseContext(input: String) {
             TokenType.JOIN, TokenType.INNER, TokenType.LEFT, TokenType.RIGHT, TokenType.FULL, TokenType.CROSS,
             TokenType.ORDER, TokenType.GROUP, TokenType.HAVING,
             TokenType.ON, TokenType.FETCH, TokenType.OFFSET,
+            TokenType.UNION, TokenType.INTERSECT, TokenType.EXCEPT,
             TokenType.END_OF_FILE, TokenType.RIGHT_PARENTHESES
         )
     }

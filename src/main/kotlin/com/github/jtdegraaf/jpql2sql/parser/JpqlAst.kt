@@ -243,3 +243,20 @@ data class TrimExpression(
     val source: Expression
 ) : Expression()
 
+/**
+ * Set operation type for compound queries.
+ */
+enum class SetOperation {
+    UNION, UNION_ALL, INTERSECT, INTERSECT_ALL, EXCEPT, EXCEPT_ALL
+}
+
+/**
+ * Represents a compound query combining multiple queries with set operations.
+ * E.g., SELECT ... UNION SELECT ... INTERSECT SELECT ...
+ */
+data class CompoundQuery(
+    val left: JpqlQuery,
+    val operation: SetOperation,
+    val right: JpqlQuery
+) : JpqlNode()
+

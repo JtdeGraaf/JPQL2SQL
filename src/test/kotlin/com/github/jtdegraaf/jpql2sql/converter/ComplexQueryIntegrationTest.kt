@@ -585,4 +585,43 @@ class ComplexQueryIntegrationTest : BaseJpaTestCase() {
             convert("SELECT au FROM ActiveUser au WHERE au.email LIKE :pattern")
         )
     }
+
+    // ============ Test Case 19: UNION/INTERSECT/EXCEPT Queries ============
+
+    fun testUnionQuery() {
+        assertEquals(
+            "SELECT u.name FROM users u WHERE u.status = 'ACTIVE' UNION SELECT u.name FROM users u WHERE u.status = 'PENDING'",
+            convertCompound("SELECT u.name FROM User u WHERE u.status = 'ACTIVE' UNION SELECT u.name FROM User u WHERE u.status = 'PENDING'")
+        )
+    }
+
+    fun testUnionAllQuery() {
+        assertEquals(
+            "SELECT u.name FROM users u WHERE u.status = 'ACTIVE' UNION ALL SELECT u.name FROM users u WHERE u.status = 'PENDING'",
+            convertCompound("SELECT u.name FROM User u WHERE u.status = 'ACTIVE' UNION ALL SELECT u.name FROM User u WHERE u.status = 'PENDING'")
+        )
+    }
+
+    fun testIntersectQuery() {
+        assertEquals(
+            "SELECT u.name FROM users u WHERE u.age > 18 INTERSECT SELECT u.name FROM users u WHERE u.status = 'ACTIVE'",
+            convertCompound("SELECT u.name FROM User u WHERE u.age > 18 INTERSECT SELECT u.name FROM User u WHERE u.status = 'ACTIVE'")
+        )
+    }
+
+    fun testExceptQuery() {
+        assertEquals(
+            "SELECT u.name FROM users u EXCEPT SELECT u.name FROM users u WHERE u.status = 'INACTIVE'",
+            convertCompound("SELECT u.name FROM User u EXCEPT SELECT u.name FROM User u WHERE u.status = 'INACTIVE'")
+        )
+    }
+
+    /**
+     * Converts a compound JPQL query (with UNION/INTERSECT/EXCEPT) to SQL.
+     */
+    private fun convertCompound(jpql: String): String {
+        val ast = JpqlParser(jpql).parseCompound()
+        val resolver = EntityResolver(project)
+        return SqlConverter(PostgreSqlDialect, resolver).convert(ast)
+    }
 }

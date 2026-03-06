@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## 1.3.0
+
+### Added
+
+- `@IdClass` annotation support for composite primary keys
+- Hibernate `@Subselect` annotation support for mapping entities to SQL subqueries
+- `UNION`, `UNION ALL`, `INTERSECT`, `INTERSECT ALL`, `EXCEPT`, `EXCEPT ALL` set operations
+
 ## [1.2.0]
 
 ### Added

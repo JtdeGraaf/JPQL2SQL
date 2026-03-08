@@ -21,6 +21,8 @@ import com.github.jtdegraaf.jpql2sql.parser.*
 class ImplicitJoinTransformer(
     private val entityResolver: EntityResolver
 ) {
+    private val joinGenerator = JoinGenerator(entityResolver)
+
     /**
      * Maps alias to entity name for relationship resolution.
      */
@@ -36,8 +38,6 @@ class ImplicitJoinTransformer(
      */
     private val implicitJoins = mutableListOf<JoinClause>()
 
-    private var aliasCounter = 0
-
     /**
      * Transforms the query by adding implicit JOINs and rewriting path expressions.
      *
@@ -49,7 +49,7 @@ class ImplicitJoinTransformer(
         aliasToEntity.clear()
         joinPathToAlias.clear()
         implicitJoins.clear()
-        aliasCounter = 0
+        joinGenerator.resetAliasCounter()
 
         return transformInternal(query)
     }
@@ -62,13 +62,13 @@ class ImplicitJoinTransformer(
         val savedAliasToEntity = aliasToEntity.toMap()
         val savedJoinPathToAlias = joinPathToAlias.toMap()
         val savedImplicitJoins = implicitJoins.toList()
-        val savedAliasCounter = aliasCounter
+        val savedAliasCounter = joinGenerator.getAliasCounter()
 
         // Clear state for this query's context
         aliasToEntity.clear()
         joinPathToAlias.clear()
         implicitJoins.clear()
-        aliasCounter = 0
+        joinGenerator.setAliasCounter(0)
 
         // Build initial alias-to-entity mapping for this query
         aliasToEntity[query.from.alias] = query.from.entity.name
@@ -101,7 +101,7 @@ class ImplicitJoinTransformer(
         joinPathToAlias.putAll(savedJoinPathToAlias)
         implicitJoins.clear()
         implicitJoins.addAll(savedImplicitJoins)
-        aliasCounter = savedAliasCounter
+        joinGenerator.setAliasCounter(savedAliasCounter)
 
         return result
     }
@@ -144,36 +144,7 @@ class ImplicitJoinTransformer(
     }
 
     private fun collectPathsFromExpression(expr: Expression, paths: MutableList<PathExpression>) {
-        when (expr) {
-            is PathExpression -> paths.add(expr)
-            is BinaryExpression -> {
-                collectPathsFromExpression(expr.left, paths)
-                collectPathsFromExpression(expr.right, paths)
-            }
-            is UnaryExpression -> collectPathsFromExpression(expr.operand, paths)
-            is FunctionCallExpression -> expr.arguments.forEach { collectPathsFromExpression(it, paths) }
-            is CaseExpression -> {
-                expr.operand?.let { collectPathsFromExpression(it, paths) }
-                expr.whenClauses.forEach {
-                    collectPathsFromExpression(it.condition, paths)
-                    collectPathsFromExpression(it.result, paths)
-                }
-                expr.elseExpression?.let { collectPathsFromExpression(it, paths) }
-            }
-            is SubqueryExpression -> {} // Subqueries have their own context
-            is InListExpression -> expr.elements.forEach { collectPathsFromExpression(it, paths) }
-            is BetweenExpression -> {
-                collectPathsFromExpression(expr.lower, paths)
-                collectPathsFromExpression(expr.upper, paths)
-            }
-            is AggregateExpression -> collectPathsFromExpression(expr.argument, paths)
-            is ExistsExpression -> {}
-            is CastExpression -> collectPathsFromExpression(expr.expression, paths)
-            is ExtractExpression -> collectPathsFromExpression(expr.source, paths)
-            is TrimExpression -> collectPathsFromExpression(expr.source, paths)
-            is TypeExpression -> {} // TYPE(alias) doesn't need path collection
-            is LiteralExpression, is ParameterExpression, is UnparsedFragment -> {}
-        }
+        paths.addAll(ExpressionTransformer.collectPaths(expr))
     }
 
     /**
@@ -227,18 +198,13 @@ class ImplicitJoinTransformer(
                     }
                 }
                 if (targetEntity != null) {
-                    val newAlias = generateAlias(fieldName)
-                    joinPathToAlias[joinPath] = newAlias
-                    aliasToEntity[newAlias] = targetEntity
+                    val joinClause = joinGenerator.createJoinClause(currentAlias, fieldName)
+                    joinPathToAlias[joinPath] = joinClause.alias
+                    aliasToEntity[joinClause.alias] = targetEntity
 
-                    implicitJoins.add(JoinClause(
-                        type = JoinType.LEFT,
-                        path = PathExpression(listOf(currentAlias, fieldName)),
-                        alias = newAlias,
-                        condition = null
-                    ))
+                    implicitJoins.add(joinClause)
 
-                    currentAlias = newAlias
+                    currentAlias = joinClause.alias
                     currentEntity = targetEntity
                 }
             } else if (entityResolver.isEmbeddedField(currentEntity, fieldName)) {
@@ -300,40 +266,13 @@ class ImplicitJoinTransformer(
     }
 
     private fun rewriteExpression(expr: Expression): Expression {
-        return when (expr) {
-            is PathExpression -> rewritePath(expr)
-            is BinaryExpression -> BinaryExpression(
-                rewriteExpression(expr.left),
-                expr.operator,
-                rewriteExpression(expr.right)
-            )
-            is UnaryExpression -> UnaryExpression(expr.operator, rewriteExpression(expr.operand))
-            is FunctionCallExpression -> FunctionCallExpression(
-                expr.name,
-                expr.arguments.map { rewriteExpression(it) }
-            )
-            is CaseExpression -> CaseExpression(
-                expr.operand?.let { rewriteExpression(it) },
-                expr.whenClauses.map { WhenClause(rewriteExpression(it.condition), rewriteExpression(it.result)) },
-                expr.elseExpression?.let { rewriteExpression(it) }
-            )
-            is SubqueryExpression -> SubqueryExpression(transformInternal(expr.query))
-            is InListExpression -> InListExpression(expr.elements.map { rewriteExpression(it) })
-            is BetweenExpression -> BetweenExpression(
-                rewriteExpression(expr.lower),
-                rewriteExpression(expr.upper)
-            )
-            is AggregateExpression -> AggregateExpression(
-                expr.function,
-                expr.distinct,
-                rewriteExpression(expr.argument)
-            )
-            is ExistsExpression -> ExistsExpression(transformInternal(expr.subquery))
-            is CastExpression -> CastExpression(rewriteExpression(expr.expression), expr.targetType)
-            is ExtractExpression -> ExtractExpression(expr.field, rewriteExpression(expr.source))
-            is TrimExpression -> TrimExpression(expr.mode, expr.trimCharacter, rewriteExpression(expr.source))
-            is TypeExpression -> expr // TYPE(alias) doesn't need rewriting
-            is LiteralExpression, is ParameterExpression, is UnparsedFragment -> expr
+        return ExpressionTransformer.transform(expr) { e ->
+            when (e) {
+                is PathExpression -> rewritePath(e)
+                is SubqueryExpression -> SubqueryExpression(transformInternal(e.query))
+                is ExistsExpression -> ExistsExpression(transformInternal(e.subquery))
+                else -> e
+            }
         }
     }
 
@@ -384,15 +323,6 @@ class ImplicitJoinTransformer(
         return entityResolver.resolveTargetEntityName(parentEntity, fieldName)
     }
 
-    private fun inferEntityFromPath(path: PathExpression): String {
-        val lastPart = path.parts.lastOrNull() ?: return "Unknown"
-        return lastPart.replaceFirstChar { it.uppercase() }
-            .removeSuffix("s")
-            .removeSuffix("ie").plus(if (lastPart.endsWith("ies")) "y" else "")
-    }
-
-    private fun generateAlias(baseName: String): String {
-        aliasCounter++
-        return "${baseName}_$aliasCounter"
-    }
+    private fun inferEntityFromPath(path: PathExpression): String =
+        joinGenerator.inferEntityFromPath(path)
 }

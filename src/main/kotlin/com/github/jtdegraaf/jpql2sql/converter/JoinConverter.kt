@@ -1,5 +1,6 @@
 package com.github.jtdegraaf.jpql2sql.converter
 
+import com.github.jtdegraaf.jpql2sql.converter.resolver.FkNamingUtils
 import com.github.jtdegraaf.jpql2sql.parser.*
 
 /**
@@ -87,17 +88,22 @@ class JoinConverter(
         if (path.parts.size >= 2) {
             val parentAlias = path.parts[0]
             val fieldName = path.parts[1]
-            val parentEntity = aliasToEntity[parentAlias] ?: return "$parentAlias.id = $alias.id"
+            val parentEntity = aliasToEntity[parentAlias]
+                ?: return FkNamingUtils.defaultJoinCondition(parentAlias, "id", alias, "id")
 
             val joinInfo = entityResolver.resolveJoinTable(parentEntity, fieldName)
             if (joinInfo != null) {
-                return "$parentAlias.${joinInfo.columnName} = $alias.${joinInfo.referencedColumnName}"
+                return FkNamingUtils.defaultJoinCondition(
+                    parentAlias, joinInfo.columnName, alias, joinInfo.referencedColumnName
+                )
             }
 
-            val columnName = EntityResolver.toSnakeCase(fieldName) + "_id"
-            return "$parentAlias.$columnName = $alias.id"
+            val fkColumn = FkNamingUtils.defaultFkColumnName(fieldName)
+            return FkNamingUtils.defaultJoinCondition(parentAlias, fkColumn, alias)
         }
-        return "$alias.id = ${path.parts.firstOrNull() ?: "unknown"}.id"
+        return FkNamingUtils.defaultJoinCondition(
+            alias, "id", path.parts.firstOrNull() ?: "unknown", "id"
+        )
     }
 
     companion object {

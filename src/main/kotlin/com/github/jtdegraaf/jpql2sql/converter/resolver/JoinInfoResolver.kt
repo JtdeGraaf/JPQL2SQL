@@ -32,8 +32,8 @@ class JoinInfoResolver(
             val targetTable = resolveTargetTable(members)
             if (targetTable != null) {
                 return JoinInfo(
-                    columnName = NamingUtils.toSnakeCase(entityName) + "_id",
-                    referencedColumnName = "id",
+                    columnName = FkNamingUtils.entityFkColumnName(entityName),
+                    referencedColumnName = FkNamingUtils.DEFAULT_REFERENCED_COLUMN,
                     targetTable = targetTable,
                     joinTable = null,
                     inverseColumnName = null,
@@ -44,7 +44,7 @@ class JoinInfoResolver(
 
         // Check @JoinColumn
         val joinColName = JoinColumnResolver.findJoinColumnName(members)
-        val referencedCol = JoinColumnResolver.findReferencedColumnName(members) ?: "id"
+        val referencedCol = JoinColumnResolver.findReferencedColumnName(members) ?: FkNamingUtils.DEFAULT_REFERENCED_COLUMN
         val targetTable = resolveTargetTable(members)
 
         if (joinColName != null) {
@@ -59,8 +59,8 @@ class JoinInfoResolver(
 
         // Default
         return JoinInfo(
-            columnName = NamingUtils.toSnakeCase(fieldName) + "_id",
-            referencedColumnName = "id",
+            columnName = FkNamingUtils.defaultFkColumnName(fieldName),
+            referencedColumnName = FkNamingUtils.DEFAULT_REFERENCED_COLUMN,
             targetTable = targetTable ?: NamingUtils.toSnakeCase(fieldName),
             joinTable = null,
             inverseColumnName = null
@@ -82,11 +82,11 @@ class JoinInfoResolver(
 
                 val joinColumnName = PsiUtils.getFirstNestedAnnotationValue(
                     annotation, "joinColumns", "name"
-                ) ?: "id"
+                ) ?: FkNamingUtils.DEFAULT_REFERENCED_COLUMN
 
                 val inverseJoinColumnName = PsiUtils.getFirstNestedAnnotationValue(
                     annotation, "inverseJoinColumns", "name"
-                ) ?: (NamingUtils.toSnakeCase(fieldName) + "_id")
+                ) ?: FkNamingUtils.defaultFkColumnName(fieldName)
 
                 val targetTable = resolveTargetTableFromFieldOrGetter(field, getter)
                     ?: NamingUtils.toSnakeCase(fieldName)

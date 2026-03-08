@@ -282,57 +282,175 @@ data class Token(
     val position: Int
 )
 
-enum class TokenType {
+/**
+ * Classification categories for token types.
+ */
+enum class TokenCategory {
+    KEYWORD,
+    FUNCTION,
+    AGGREGATE,
+    COMPARISON_OPERATOR,
+    ARITHMETIC_OPERATOR,
+    PUNCTUATION,
+    LITERAL,
+    SPECIAL
+}
+
+enum class TokenType(val category: TokenCategory) {
     // Keywords
-    SELECT, DISTINCT, FROM, WHERE, AND, OR, NOT,
-    IN, BETWEEN, LIKE, IS, NULL, TRUE, FALSE,
-    JOIN, INNER, LEFT, RIGHT, OUTER, FULL, CROSS, ON, FETCH, NEXT, ROW, ROWS, ONLY, OFFSET,
-    ORDER, BY, ASC, DESC, NULLS, FIRST, LAST,
-    GROUP, HAVING,
-    UNION, INTERSECT, EXCEPT, ALL,
-    COUNT, SUM, AVG, MIN, MAX,
-    NEW, AS, CASE, WHEN, THEN, ELSE, END,
-    MEMBER, OF, ESCAPE,
+    SELECT(TokenCategory.KEYWORD),
+    DISTINCT(TokenCategory.KEYWORD),
+    FROM(TokenCategory.KEYWORD),
+    WHERE(TokenCategory.KEYWORD),
+    AND(TokenCategory.KEYWORD),
+    OR(TokenCategory.KEYWORD),
+    NOT(TokenCategory.KEYWORD),
+    IN(TokenCategory.KEYWORD),
+    BETWEEN(TokenCategory.KEYWORD),
+    LIKE(TokenCategory.KEYWORD),
+    IS(TokenCategory.KEYWORD),
+    NULL(TokenCategory.KEYWORD),
+    TRUE(TokenCategory.KEYWORD),
+    FALSE(TokenCategory.KEYWORD),
+    JOIN(TokenCategory.KEYWORD),
+    INNER(TokenCategory.KEYWORD),
+    LEFT(TokenCategory.KEYWORD),
+    RIGHT(TokenCategory.KEYWORD),
+    OUTER(TokenCategory.KEYWORD),
+    FULL(TokenCategory.KEYWORD),
+    CROSS(TokenCategory.KEYWORD),
+    ON(TokenCategory.KEYWORD),
+    FETCH(TokenCategory.KEYWORD),
+    NEXT(TokenCategory.KEYWORD),
+    ROW(TokenCategory.KEYWORD),
+    ROWS(TokenCategory.KEYWORD),
+    ONLY(TokenCategory.KEYWORD),
+    OFFSET(TokenCategory.KEYWORD),
+    ORDER(TokenCategory.KEYWORD),
+    BY(TokenCategory.KEYWORD),
+    ASC(TokenCategory.KEYWORD),
+    DESC(TokenCategory.KEYWORD),
+    NULLS(TokenCategory.KEYWORD),
+    FIRST(TokenCategory.KEYWORD),
+    LAST(TokenCategory.KEYWORD),
+    GROUP(TokenCategory.KEYWORD),
+    HAVING(TokenCategory.KEYWORD),
+    UNION(TokenCategory.KEYWORD),
+    INTERSECT(TokenCategory.KEYWORD),
+    EXCEPT(TokenCategory.KEYWORD),
+    ALL(TokenCategory.KEYWORD),
+    NEW(TokenCategory.KEYWORD),
+    AS(TokenCategory.KEYWORD),
+    CASE(TokenCategory.KEYWORD),
+    WHEN(TokenCategory.KEYWORD),
+    THEN(TokenCategory.KEYWORD),
+    ELSE(TokenCategory.KEYWORD),
+    END(TokenCategory.KEYWORD),
+    MEMBER(TokenCategory.KEYWORD),
+    OF(TokenCategory.KEYWORD),
+    ESCAPE(TokenCategory.KEYWORD),
+    EMPTY(TokenCategory.KEYWORD),
+    EXISTS(TokenCategory.KEYWORD),
+    FUNCTION(TokenCategory.KEYWORD),
+    CAST(TokenCategory.KEYWORD),
+    TYPE(TokenCategory.KEYWORD),
+    EXTRACT(TokenCategory.KEYWORD),
+    YEAR(TokenCategory.KEYWORD),
+    MONTH(TokenCategory.KEYWORD),
+    DAY(TokenCategory.KEYWORD),
+    HOUR(TokenCategory.KEYWORD),
+    MINUTE(TokenCategory.KEYWORD),
+    SECOND(TokenCategory.KEYWORD),
+    LEADING(TokenCategory.KEYWORD),
+    TRAILING(TokenCategory.KEYWORD),
+    BOTH(TokenCategory.KEYWORD),
 
-    // Functions
-    UPPER, LOWER, TRIM, LENGTH, CONCAT, SUBSTRING, LOCATE,
-    ABS, SQRT, MOD, SIZE, INDEX,
-    CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP,
-    COALESCE, NULLIF, TREAT, EMPTY, EXISTS, FUNCTION, CAST, TYPE,
-    EXTRACT, YEAR, MONTH, DAY, HOUR, MINUTE, SECOND,
-    LEADING, TRAILING, BOTH,
+    // Aggregate functions
+    COUNT(TokenCategory.AGGREGATE),
+    SUM(TokenCategory.AGGREGATE),
+    AVG(TokenCategory.AGGREGATE),
+    MIN(TokenCategory.AGGREGATE),
+    MAX(TokenCategory.AGGREGATE),
 
-    // Operators
-    EQUALS, NOT_EQUALS, LESS_THAN, LESS_THAN_OR_EQUAL, GREATER_THAN, GREATER_THAN_OR_EQUAL,
-    PLUS, MINUS, STAR, SLASH, CONCAT_OP,
+    // Built-in functions (standard function call syntax)
+    UPPER(TokenCategory.FUNCTION),
+    LOWER(TokenCategory.FUNCTION),
+    LENGTH(TokenCategory.FUNCTION),
+    CONCAT(TokenCategory.FUNCTION),
+    SUBSTRING(TokenCategory.FUNCTION),
+    LOCATE(TokenCategory.FUNCTION),
+    ABS(TokenCategory.FUNCTION),
+    SQRT(TokenCategory.FUNCTION),
+    MOD(TokenCategory.FUNCTION),
+    SIZE(TokenCategory.FUNCTION),
+    INDEX(TokenCategory.FUNCTION),
+    CURRENT_DATE(TokenCategory.FUNCTION),
+    CURRENT_TIME(TokenCategory.FUNCTION),
+    CURRENT_TIMESTAMP(TokenCategory.FUNCTION),
+    COALESCE(TokenCategory.FUNCTION),
+    NULLIF(TokenCategory.FUNCTION),
+    TREAT(TokenCategory.FUNCTION),
+
+    // Special syntax functions (not standard function call syntax - handled specially)
+    TRIM(TokenCategory.KEYWORD),  // TRIM(LEADING 'x' FROM expr) - special syntax
+
+    // Comparison operators
+    EQUALS(TokenCategory.COMPARISON_OPERATOR),
+    NOT_EQUALS(TokenCategory.COMPARISON_OPERATOR),
+    LESS_THAN(TokenCategory.COMPARISON_OPERATOR),
+    LESS_THAN_OR_EQUAL(TokenCategory.COMPARISON_OPERATOR),
+    GREATER_THAN(TokenCategory.COMPARISON_OPERATOR),
+    GREATER_THAN_OR_EQUAL(TokenCategory.COMPARISON_OPERATOR),
+
+    // Arithmetic operators
+    PLUS(TokenCategory.ARITHMETIC_OPERATOR),
+    MINUS(TokenCategory.ARITHMETIC_OPERATOR),
+    STAR(TokenCategory.ARITHMETIC_OPERATOR),
+    SLASH(TokenCategory.ARITHMETIC_OPERATOR),
+    CONCAT_OP(TokenCategory.ARITHMETIC_OPERATOR),
 
     // Punctuation
-    LEFT_PARENTHESES, RIGHT_PARENTHESES, COMMA, DOT,
+    LEFT_PARENTHESES(TokenCategory.PUNCTUATION),
+    RIGHT_PARENTHESES(TokenCategory.PUNCTUATION),
+    COMMA(TokenCategory.PUNCTUATION),
+    DOT(TokenCategory.PUNCTUATION),
 
     // Literals and identifiers
-    IDENTIFIER, STRING_LITERAL, NUMBER_LITERAL,
-    NAMED_PARAM, POSITIONAL_PARAM,
+    IDENTIFIER(TokenCategory.LITERAL),
+    STRING_LITERAL(TokenCategory.LITERAL),
+    NUMBER_LITERAL(TokenCategory.LITERAL),
+    NAMED_PARAM(TokenCategory.LITERAL),
+    POSITIONAL_PARAM(TokenCategory.LITERAL),
 
     // Special
-    END_OF_FILE, UNKNOWN;
+    END_OF_FILE(TokenCategory.SPECIAL),
+    UNKNOWN(TokenCategory.SPECIAL);
 
     /**
      * Returns true if this token type is a keyword or function name that could
      * also be used as an entity name or field name (e.g. "Order", "Group", "Index").
      */
-    fun isKeyword(): Boolean = this !in NON_KEYWORD_TOKENS
+    fun isKeyword(): Boolean = category == TokenCategory.KEYWORD ||
+            category == TokenCategory.FUNCTION ||
+            category == TokenCategory.AGGREGATE
 
-    companion object {
-        private val NON_KEYWORD_TOKENS = setOf(
-            // Operators
-            EQUALS, NOT_EQUALS, LESS_THAN, LESS_THAN_OR_EQUAL, GREATER_THAN, GREATER_THAN_OR_EQUAL, PLUS, MINUS, STAR, SLASH, CONCAT_OP,
-            // Punctuation
-            LEFT_PARENTHESES, RIGHT_PARENTHESES, COMMA, DOT,
-            // Literals and identifiers
-            IDENTIFIER, STRING_LITERAL, NUMBER_LITERAL,
-            NAMED_PARAM, POSITIONAL_PARAM,
-            // Special
-            END_OF_FILE, UNKNOWN
-        )
-    }
+    /**
+     * Returns true if this is a built-in JPQL function token.
+     */
+    fun isFunction(): Boolean = category == TokenCategory.FUNCTION
+
+    /**
+     * Returns true if this is an aggregate function token (COUNT, SUM, AVG, MIN, MAX).
+     */
+    fun isAggregate(): Boolean = category == TokenCategory.AGGREGATE
+
+    /**
+     * Returns true if this is a comparison operator (=, <>, <, <=, >, >=).
+     */
+    fun isComparisonOperator(): Boolean = category == TokenCategory.COMPARISON_OPERATOR
+
+    /**
+     * Returns true if this is an arithmetic operator (+, -, *, /, ||).
+     */
+    fun isArithmeticOperator(): Boolean = category == TokenCategory.ARITHMETIC_OPERATOR
 }

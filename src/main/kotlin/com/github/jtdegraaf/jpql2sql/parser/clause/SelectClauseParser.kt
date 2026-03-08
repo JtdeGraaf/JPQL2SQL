@@ -1,7 +1,6 @@
 package com.github.jtdegraaf.jpql2sql.parser.clause
 
 import com.github.jtdegraaf.jpql2sql.parser.*
-import com.github.jtdegraaf.jpql2sql.parser.clause.ExpressionParser.Companion.isFunctionToken
 
 /**
  * Parses the SELECT clause including projections, aggregates, constructor expressions,
@@ -58,149 +57,208 @@ class SelectClauseParser(
     }
 
     private fun parseProjectionInternal(): Projection {
-        if (ctx.check(TokenType.NEW)) return parseConstructorProjection()
+        return parseConstructorProjection()
+            ?: parseAggregateProjection()
+            ?: parseFunctionProjection()
+            ?: parseCaseProjection()
+            ?: parseCastProjection()
+            ?: parseExtractProjection()
+            ?: parseTrimProjection()
+            ?: parseExistsProjection()
+            ?: parseLiteralProjection()
+            ?: parseSubqueryProjection()
+            ?: parsePathProjection()
+    }
 
-        val aggregateFunc = when {
-            ctx.check(TokenType.COUNT) -> AggregateFunction.COUNT
-            ctx.check(TokenType.SUM) -> AggregateFunction.SUM
-            ctx.check(TokenType.AVG) -> AggregateFunction.AVG
-            ctx.check(TokenType.MIN) -> AggregateFunction.MIN
-            ctx.check(TokenType.MAX) -> AggregateFunction.MAX
-            else -> null
+    /**
+     * Parses constructor projection: NEW ClassName(...)
+     */
+    private fun parseConstructorProjection(): Projection? {
+        if (!ctx.check(TokenType.NEW)) return null
+
+        ctx.expect(TokenType.NEW)
+        val className = expr.parseQualifiedName()
+        ctx.expect(TokenType.LEFT_PARENTHESES)
+        val args = mutableListOf<Expression>()
+        if (!ctx.check(TokenType.RIGHT_PARENTHESES)) {
+            do { args.add(expr.parseExpression()) } while (ctx.match(TokenType.COMMA))
+        }
+        ctx.expect(TokenType.RIGHT_PARENTHESES)
+        return ConstructorProjection(className, args)
+    }
+
+    /**
+     * Parses aggregate projections: COUNT, SUM, AVG, MIN, MAX
+     */
+    private fun parseAggregateProjection(): Projection? {
+        if (!ctx.current.type.isAggregate()) return null
+
+        val aggregateFunc = when (ctx.current.type) {
+            TokenType.COUNT -> AggregateFunction.COUNT
+            TokenType.SUM -> AggregateFunction.SUM
+            TokenType.AVG -> AggregateFunction.AVG
+            TokenType.MIN -> AggregateFunction.MIN
+            TokenType.MAX -> AggregateFunction.MAX
+            else -> return null
         }
 
-        if (aggregateFunc != null) {
+        ctx.advance()
+        ctx.expect(TokenType.LEFT_PARENTHESES)
+
+        // Handle COUNT(*)
+        if (aggregateFunc == AggregateFunction.COUNT && ctx.check(TokenType.STAR)) {
             ctx.advance()
-            ctx.expect(TokenType.LEFT_PARENTHESES)
-
-            if (aggregateFunc == AggregateFunction.COUNT && ctx.check(TokenType.STAR)) {
-                ctx.advance()
-                ctx.expect(TokenType.RIGHT_PARENTHESES)
-
-                // Check if this COUNT(*) is part of a comparison expression like COUNT(*) > 0
-                if (isComparisonOperator(ctx.current.type)) {
-                    val countExpr = AggregateExpression(AggregateFunction.COUNT, false, PathExpression(listOf("*")))
-                    val fullExpr = parseRemainingComparison(countExpr)
-                    val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
-                    return FieldProjection(fullExpr, alias)
-                }
-
-                val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
-                return if (alias != null) {
-                    AggregateProjection(AggregateFunction.COUNT, false, PathExpression(listOf("*")), alias)
-                } else {
-                    CountAllProjection
-                }
-            }
-
-            val distinct = ctx.match(TokenType.DISTINCT)
-            val expression = expr.parseExpression()
             ctx.expect(TokenType.RIGHT_PARENTHESES)
 
-            // Check if this aggregate is part of a comparison expression like COUNT(m) > 0
-            if (isComparisonOperator(ctx.current.type)) {
-                val aggExpr = AggregateExpression(aggregateFunc, distinct, expression)
-                val fullExpr = parseRemainingComparison(aggExpr)
-                val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
+            // Check if COUNT(*) is part of a comparison expression like COUNT(*) > 0
+            if (ctx.current.type.isComparisonOperator()) {
+                val countExpr = AggregateExpression(AggregateFunction.COUNT, false, PathExpression(listOf("*")))
+                val fullExpr = parseRemainingComparison(countExpr)
+                val alias = ctx.parseOptionalAlias()
                 return FieldProjection(fullExpr, alias)
             }
 
-            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
-            return AggregateProjection(aggregateFunc, distinct, expression, alias)
-        }
-
-        if (ctx.check(TokenType.FUNCTION) || isFunctionToken(ctx.current.type)) {
-            val funcExpr = if (ctx.check(TokenType.FUNCTION)) {
-                expr.parseExpression()  // parseExpression will handle FUNCTION token
+            val alias = ctx.parseOptionalAlias()
+            return if (alias != null) {
+                AggregateProjection(AggregateFunction.COUNT, false, PathExpression(listOf("*")), alias)
             } else {
-                expr.parseFunctionCall()
+                CountAllProjection
             }
-            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
-            return FieldProjection(funcExpr, alias)
         }
 
-        if (ctx.check(TokenType.CASE)) {
-            val caseExpr = expr.parseExpression()
-            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
-            return FieldProjection(caseExpr, alias)
-        }
+        val distinct = ctx.match(TokenType.DISTINCT)
+        val expression = expr.parseExpression()
+        ctx.expect(TokenType.RIGHT_PARENTHESES)
 
-        // Handle CAST expressions in SELECT clause
-        if (ctx.check(TokenType.CAST)) {
-            val castExpr = expr.parseExpression()
-            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
-            return FieldProjection(castExpr, alias)
-        }
-
-        // Handle EXTRACT expressions in SELECT clause
-        if (ctx.check(TokenType.EXTRACT)) {
-            val extractExpr = expr.parseExpression()
-            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
-            return FieldProjection(extractExpr, alias)
-        }
-
-        // Handle TRIM expressions in SELECT clause
-        if (ctx.check(TokenType.TRIM)) {
-            val trimExpr = expr.parseExpression()
-            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
-            return FieldProjection(trimExpr, alias)
-        }
-
-        // Handle EXISTS and NOT EXISTS in SELECT clause
-        if (ctx.check(TokenType.EXISTS) || (ctx.check(TokenType.NOT) && ctx.peekNext()?.type == TokenType.EXISTS)) {
-            val existsExpr = expr.parseExpression()
-            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
-            return FieldProjection(existsExpr, alias)
-        }
-
-        // Handle literal values (e.g., SELECT 1 FROM ... for EXISTS subqueries)
-        if (ctx.check(TokenType.NUMBER_LITERAL) || ctx.check(TokenType.STRING_LITERAL)) {
-            val literalExpr = expr.parseExpression()
-            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
-            return FieldProjection(literalExpr, alias)
-        }
-
-        // Handle subqueries in SELECT clause: (SELECT ...)
-        if (ctx.check(TokenType.LEFT_PARENTHESES)) {
-            val fullExpr = expr.parseExpression()
-            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
+        // Check if aggregate is part of a comparison expression like COUNT(m) > 0
+        if (ctx.current.type.isComparisonOperator()) {
+            val aggExpr = AggregateExpression(aggregateFunc, distinct, expression)
+            val fullExpr = parseRemainingComparison(aggExpr)
+            val alias = ctx.parseOptionalAlias()
             return FieldProjection(fullExpr, alias)
         }
 
+        val alias = ctx.parseOptionalAlias()
+        return AggregateProjection(aggregateFunc, distinct, expression, alias)
+    }
+
+    /**
+     * Parses function projections: built-in functions and FUNCTION('name', ...)
+     */
+    private fun parseFunctionProjection(): Projection? {
+        if (!ctx.check(TokenType.FUNCTION) && !ctx.current.type.isFunction()) return null
+
+        val funcExpr = if (ctx.check(TokenType.FUNCTION)) {
+            expr.parseExpression()  // parseExpression will handle FUNCTION token
+        } else {
+            expr.parseFunctionCall()
+        }
+        val alias = ctx.parseOptionalAlias()
+        return FieldProjection(funcExpr, alias)
+    }
+
+    /**
+     * Parses CASE expression projections.
+     */
+    private fun parseCaseProjection(): Projection? {
+        if (!ctx.check(TokenType.CASE)) return null
+        val caseExpr = expr.parseExpression()
+        val alias = ctx.parseOptionalAlias()
+        return FieldProjection(caseExpr, alias)
+    }
+
+    /**
+     * Parses CAST expression projections.
+     */
+    private fun parseCastProjection(): Projection? {
+        if (!ctx.check(TokenType.CAST)) return null
+        val castExpr = expr.parseExpression()
+        val alias = ctx.parseOptionalAlias()
+        return FieldProjection(castExpr, alias)
+    }
+
+    /**
+     * Parses EXTRACT expression projections.
+     */
+    private fun parseExtractProjection(): Projection? {
+        if (!ctx.check(TokenType.EXTRACT)) return null
+        val extractExpr = expr.parseExpression()
+        val alias = ctx.parseOptionalAlias()
+        return FieldProjection(extractExpr, alias)
+    }
+
+    /**
+     * Parses TRIM expression projections.
+     */
+    private fun parseTrimProjection(): Projection? {
+        if (!ctx.check(TokenType.TRIM)) return null
+        val trimExpr = expr.parseExpression()
+        val alias = ctx.parseOptionalAlias()
+        return FieldProjection(trimExpr, alias)
+    }
+
+    /**
+     * Parses EXISTS and NOT EXISTS expression projections.
+     */
+    private fun parseExistsProjection(): Projection? {
+        if (!ctx.check(TokenType.EXISTS) && !(ctx.check(TokenType.NOT) && ctx.peekNext()?.type == TokenType.EXISTS)) {
+            return null
+        }
+        val existsExpr = expr.parseExpression()
+        val alias = ctx.parseOptionalAlias()
+        return FieldProjection(existsExpr, alias)
+    }
+
+    /**
+     * Parses literal value projections (e.g., SELECT 1 FROM ...)
+     */
+    private fun parseLiteralProjection(): Projection? {
+        if (!ctx.check(TokenType.NUMBER_LITERAL) && !ctx.check(TokenType.STRING_LITERAL)) return null
+        val literalExpr = expr.parseExpression()
+        val alias = ctx.parseOptionalAlias()
+        return FieldProjection(literalExpr, alias)
+    }
+
+    /**
+     * Parses subquery projections: (SELECT ...)
+     */
+    private fun parseSubqueryProjection(): Projection? {
+        if (!ctx.check(TokenType.LEFT_PARENTHESES)) return null
+        val fullExpr = expr.parseExpression()
+        val alias = ctx.parseOptionalAlias()
+        return FieldProjection(fullExpr, alias)
+    }
+
+    /**
+     * Parses path expression projections with optional arithmetic or function calls.
+     */
+    private fun parsePathProjection(): Projection {
         val path = expr.parsePathExpression()
 
         // Check for parameterless native function call: single identifier followed by ()
-        // e.g., SYSDATE() for Oracle - the () signals it's a function, not a field
         if (path.parts.size == 1 && ctx.check(TokenType.LEFT_PARENTHESES) && ctx.peekNext()?.type == TokenType.RIGHT_PARENTHESES) {
             ctx.advance() // consume (
             ctx.advance() // consume )
             val funcExpr = FunctionCallExpression(path.parts[0].uppercase(), emptyList())
-            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
+            val alias = ctx.parseOptionalAlias()
             return FieldProjection(funcExpr, alias)
         }
 
         // Check for arithmetic operators after path expression (e.g., u.age + 5)
-        if (isArithmeticOperator(ctx.current.type)) {
+        if (ctx.current.type.isArithmeticOperator()) {
             val fullExpr = parseRemainingArithmetic(path)
-            val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
+            val alias = ctx.parseOptionalAlias()
             return FieldProjection(fullExpr, alias)
         }
 
-        val alias = if (ctx.match(TokenType.AS)) ctx.expectIdentifier() else null
+        val alias = ctx.parseOptionalAlias()
         return FieldProjection(path, alias)
     }
 
-    private fun isComparisonOperator(type: TokenType): Boolean {
-        return type in setOf(TokenType.EQUALS, TokenType.NOT_EQUALS, TokenType.LESS_THAN, TokenType.LESS_THAN_OR_EQUAL, TokenType.GREATER_THAN, TokenType.GREATER_THAN_OR_EQUAL)
-    }
-
-    private fun isArithmeticOperator(type: TokenType): Boolean {
-        return type in setOf(TokenType.PLUS, TokenType.MINUS, TokenType.STAR, TokenType.SLASH, TokenType.CONCAT_OP)
-    }
 
     private fun parseRemainingArithmetic(left: Expression): Expression {
         var result = left
-        while (isArithmeticOperator(ctx.current.type)) {
+        while (ctx.current.type.isArithmeticOperator()) {
             val op = when {
                 ctx.match(TokenType.PLUS) -> BinaryOperator.ADD
                 ctx.match(TokenType.MINUS) -> BinaryOperator.SUBTRACT
@@ -241,18 +299,6 @@ class SelectClauseParser(
         }
         val right = expr.parseExpression()
         return BinaryExpression(left, op, right)
-    }
-
-    private fun parseConstructorProjection(): ConstructorProjection {
-        ctx.expect(TokenType.NEW)
-        val className = expr.parseQualifiedName()
-        ctx.expect(TokenType.LEFT_PARENTHESES)
-        val args = mutableListOf<Expression>()
-        if (!ctx.check(TokenType.RIGHT_PARENTHESES)) {
-            do { args.add(expr.parseExpression()) } while (ctx.match(TokenType.COMMA))
-        }
-        ctx.expect(TokenType.RIGHT_PARENTHESES)
-        return ConstructorProjection(className, args)
     }
 }
 

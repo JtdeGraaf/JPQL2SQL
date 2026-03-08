@@ -1,6 +1,7 @@
 package com.github.jtdegraaf.jpql2sql.repository
 
 import com.github.jtdegraaf.jpql2sql.converter.EntityResolver
+import com.github.jtdegraaf.jpql2sql.converter.JoinGenerator
 import com.github.jtdegraaf.jpql2sql.parser.*
 
 /**
@@ -14,6 +15,7 @@ import com.github.jtdegraaf.jpql2sql.parser.*
 class DerivedQueryAstBuilder(
     private val entityResolver: EntityResolver
 ) {
+    private val joinGenerator = JoinGenerator(entityResolver)
 
     companion object {
         private const val DEFAULT_ALIAS = "e"
@@ -22,14 +24,13 @@ class DerivedQueryAstBuilder(
     private val aliasToEntity = mutableMapOf<String, String>()
     private val joinPathToAlias = mutableMapOf<String, String>()
     private val joins = mutableListOf<JoinClause>()
-    private var aliasCounter = 0
 
     fun build(components: DerivedQueryComponents): JpqlQuery {
         // Reset state
         aliasToEntity.clear()
         joinPathToAlias.clear()
         joins.clear()
-        aliasCounter = 0
+        joinGenerator.resetAliasCounter()
 
         val alias = DEFAULT_ALIAS
         aliasToEntity[alias] = components.entityName
@@ -112,18 +113,13 @@ class DerivedQueryAstBuilder(
                 }
 
                 if (targetEntity != null) {
-                    val newAlias = generateAlias(fieldName)
-                    joinPathToAlias[joinPath] = newAlias
-                    aliasToEntity[newAlias] = targetEntity
+                    val joinClause = joinGenerator.createJoinClause(currentAlias, fieldName)
+                    joinPathToAlias[joinPath] = joinClause.alias
+                    aliasToEntity[joinClause.alias] = targetEntity
 
-                    joins.add(JoinClause(
-                        type = JoinType.LEFT,
-                        path = PathExpression(listOf(currentAlias, fieldName)),
-                        alias = newAlias,
-                        condition = null
-                    ))
+                    joins.add(joinClause)
 
-                    currentAlias = newAlias
+                    currentAlias = joinClause.alias
                     currentEntity = targetEntity
                 }
             } else if (entityResolver.isEmbeddedField(currentEntity, fieldName)) {
@@ -172,11 +168,6 @@ class DerivedQueryAstBuilder(
         // Include all remaining parts from where we stopped
         val remainingParts = parts.drop(partIndex)
         return PathExpression(listOf(currentAlias) + remainingParts)
-    }
-
-    private fun generateAlias(baseName: String): String {
-        aliasCounter++
-        return "${baseName}_$aliasCounter"
     }
 
     private fun buildSelectClause(components: DerivedQueryComponents, alias: String): SelectClause {

@@ -116,8 +116,7 @@ class JpqlParser(input: String) {
         }
     }
 
-    private fun isSetOperationKeyword(): Boolean =
-        ctx.check(TokenType.UNION) || ctx.check(TokenType.INTERSECT) || ctx.check(TokenType.EXCEPT)
+    private fun isSetOperationKeyword(): Boolean = ctx.current.type.isSetOperator()
 }
 
 class JpqlParseException(message: String) : RuntimeException(message)

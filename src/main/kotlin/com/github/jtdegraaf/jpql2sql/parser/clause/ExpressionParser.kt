@@ -126,20 +126,9 @@ class ExpressionParser(
             return expr
         }
 
-        // Literals
-        if (ctx.check(TokenType.STRING_LITERAL)) { val v = ctx.current.text; ctx.advance(); return LiteralExpression(v, LiteralType.STRING) }
-        if (ctx.check(TokenType.NUMBER_LITERAL)) {
-            val v = ctx.current.text.toLongOrNull() ?: ctx.current.text.toDoubleOrNull() ?: ctx.current.text
-            ctx.advance()
-            return LiteralExpression(v, LiteralType.NUMBER)
-        }
-        if (ctx.match(TokenType.TRUE)) return LiteralExpression(true, LiteralType.BOOLEAN)
-        if (ctx.match(TokenType.FALSE)) return LiteralExpression(false, LiteralType.BOOLEAN)
-        if (ctx.match(TokenType.NULL)) return LiteralExpression(null, LiteralType.NULL)
-
-        // Parameters
-        if (ctx.check(TokenType.NAMED_PARAM)) { val n = ctx.current.text; ctx.advance(); return ParameterExpression(n, null) }
-        if (ctx.check(TokenType.POSITIONAL_PARAM)) { val p = ctx.current.text.toIntOrNull() ?: 0; ctx.advance(); return ParameterExpression(null, p) }
+        // Literals and parameters
+        ctx.parseLiteralExpression()?.let { return it }
+        ctx.parseParameterExpression()?.let { return it }
 
         // Delegated expression types
         if (ctx.check(TokenType.EXISTS)) return subqueryExprParser.parseExistsExpression()

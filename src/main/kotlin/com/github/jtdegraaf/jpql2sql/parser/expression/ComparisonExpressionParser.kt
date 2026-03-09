@@ -57,23 +57,14 @@ class ComparisonExpressionParser(
      * Parses IN / NOT IN expressions including subqueries and parameters.
      */
     private fun parseInExpression(left: Expression): Expression? {
-        val notIn = ctx.current.type == TokenType.NOT && ctx.peekNext()?.type == TokenType.IN
+        val notIn = ctx.checkNotFollowedBy(TokenType.IN)
         if (notIn) ctx.advance()
         if (!ctx.match(TokenType.IN)) return null
 
         val operator = if (notIn) BinaryOperator.NOT_IN else BinaryOperator.IN
 
         // Collection-valued parameter: IN :param or IN ?1 (without parentheses)
-        if (ctx.check(TokenType.NAMED_PARAM)) {
-            val name = ctx.current.text
-            ctx.advance()
-            return BinaryExpression(left, operator, ParameterExpression(name, null))
-        }
-        if (ctx.check(TokenType.POSITIONAL_PARAM)) {
-            val pos = ctx.current.text.toIntOrNull() ?: 0
-            ctx.advance()
-            return BinaryExpression(left, operator, ParameterExpression(null, pos))
-        }
+        ctx.parseParameterExpression()?.let { return BinaryExpression(left, operator, it) }
 
         ctx.expect(TokenType.LEFT_PARENTHESES)
         if (ctx.check(TokenType.SELECT)) {
@@ -91,7 +82,7 @@ class ComparisonExpressionParser(
      * Parses BETWEEN / NOT BETWEEN expressions.
      */
     private fun parseBetweenExpression(left: Expression): Expression? {
-        val notBetween = ctx.current.type == TokenType.NOT && ctx.peekNext()?.type == TokenType.BETWEEN
+        val notBetween = ctx.checkNotFollowedBy(TokenType.BETWEEN)
         if (notBetween) ctx.advance()
         if (!ctx.match(TokenType.BETWEEN)) return null
 
@@ -109,7 +100,7 @@ class ComparisonExpressionParser(
      * Parses LIKE / NOT LIKE expressions.
      */
     private fun parseLikeExpression(left: Expression): Expression? {
-        val notLike = ctx.current.type == TokenType.NOT && ctx.peekNext()?.type == TokenType.LIKE
+        val notLike = ctx.checkNotFollowedBy(TokenType.LIKE)
         if (notLike) ctx.advance()
         if (!ctx.match(TokenType.LIKE)) return null
 
@@ -124,7 +115,7 @@ class ComparisonExpressionParser(
      * Parses MEMBER OF / NOT MEMBER OF expressions.
      */
     private fun parseMemberExpression(left: Expression): Expression? {
-        val notMember = ctx.current.type == TokenType.NOT && ctx.peekNext()?.type == TokenType.MEMBER
+        val notMember = ctx.checkNotFollowedBy(TokenType.MEMBER)
         if (notMember) ctx.advance()
         if (!ctx.match(TokenType.MEMBER)) return null
 

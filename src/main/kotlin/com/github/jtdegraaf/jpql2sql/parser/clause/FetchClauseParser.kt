@@ -25,7 +25,7 @@ class FetchClauseParser(private val ctx: ParseContext) {
                 ctx.advance()
             }
             // Skip optional ROWS/ROW keyword
-            if (ctx.check(TokenType.ROWS) || ctx.check(TokenType.ROW)) {
+            if (ctx.current.type.isRowKeyword()) {
                 ctx.advance()
             }
         }
@@ -51,7 +51,7 @@ class FetchClauseParser(private val ctx: ParseContext) {
         }
 
         // ROWS or ROW
-        if (ctx.check(TokenType.ROWS) || ctx.check(TokenType.ROW)) {
+        if (ctx.current.type.isRowKeyword()) {
             ctx.advance()
         }
 

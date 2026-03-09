@@ -68,7 +68,7 @@ class ParseContext(input: String) {
      * Returns true if the token type is a structural JPQL clause keyword that
      * should not be consumed as an alias or entity name in ambiguous positions.
      */
-    fun isClauseKeyword(type: TokenType): Boolean = type in CLAUSE_KEYWORDS
+    fun isClauseKeyword(type: TokenType): Boolean = type.isClauseKeyword()
 
     // ────────────── Error handling & recovery ──────────────────────
 
@@ -90,17 +90,5 @@ class ParseContext(input: String) {
         return collected.toString()
     }
 
-    companion object {
-        /** Structural keywords that start JPQL clauses and should not be consumed as aliases.
-         *  RPAREN is included to properly terminate subquery parsing. */
-        private val CLAUSE_KEYWORDS = setOf(
-            TokenType.SELECT, TokenType.FROM, TokenType.WHERE,
-            TokenType.JOIN, TokenType.INNER, TokenType.LEFT, TokenType.RIGHT, TokenType.FULL, TokenType.CROSS,
-            TokenType.ORDER, TokenType.GROUP, TokenType.HAVING,
-            TokenType.ON, TokenType.FETCH, TokenType.OFFSET,
-            TokenType.UNION, TokenType.INTERSECT, TokenType.EXCEPT,
-            TokenType.END_OF_FILE, TokenType.RIGHT_PARENTHESES
-        )
-    }
 }
 

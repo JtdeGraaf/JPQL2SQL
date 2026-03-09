@@ -66,8 +66,7 @@ class SelectClauseParser(
     }
 
     private fun isExpressionStart(): Boolean =
-        ctx.current.type.isExpressionStart() ||
-            (ctx.check(TokenType.NOT) && ctx.peekNext()?.type == TokenType.EXISTS)
+        ctx.current.type.isExpressionStart() || ctx.checkNotFollowedBy(TokenType.EXISTS)
 
     private fun parseExpressionWithAlias(): FieldProjection {
         val expression = expr.parseExpression()
@@ -162,16 +161,7 @@ class SelectClauseParser(
             }
             val right = when {
                 ctx.check(TokenType.LEFT_PARENTHESES) -> expr.parseExpression()
-                ctx.check(TokenType.NUMBER_LITERAL) -> {
-                    val v = ctx.current.text.toLongOrNull() ?: ctx.current.text.toDoubleOrNull() ?: ctx.current.text
-                    ctx.advance()
-                    LiteralExpression(v, LiteralType.NUMBER)
-                }
-                ctx.check(TokenType.STRING_LITERAL) -> {
-                    val v = ctx.current.text; ctx.advance()
-                    LiteralExpression(v, LiteralType.STRING)
-                }
-                else -> expr.parsePathExpression()
+                else -> ctx.parseLiteralExpression() ?: expr.parsePathExpression()
             }
             result = BinaryExpression(result, op, right)
         }

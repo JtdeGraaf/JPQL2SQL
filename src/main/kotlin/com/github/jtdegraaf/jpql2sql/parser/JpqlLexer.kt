@@ -461,11 +461,53 @@ enum class TokenType(val category: TokenCategory) {
      */
     fun isExpressionStart(): Boolean = this in EXPRESSION_START_TOKENS || isFunction()
 
+    /**
+     * Returns true if this is a set operation keyword (UNION, INTERSECT, EXCEPT).
+     */
+    fun isSetOperator(): Boolean = this in SET_OPERATORS
+
+    /**
+     * Returns true if this is ROW or ROWS keyword.
+     */
+    fun isRowKeyword(): Boolean = this == ROW || this == ROWS
+
+    /**
+     * Returns true if this is a value literal (string, number, boolean, null).
+     */
+    fun isValueLiteral(): Boolean = this in VALUE_LITERALS
+
+    /**
+     * Returns true if this is a parameter token (named or positional).
+     */
+    fun isParameter(): Boolean = this == NAMED_PARAM || this == POSITIONAL_PARAM
+
+    /**
+     * Returns true if this is a structural JPQL clause keyword that should not
+     * be consumed as an alias or entity name in ambiguous positions.
+     */
+    fun isClauseKeyword(): Boolean = this in CLAUSE_KEYWORDS
+
     companion object {
         private val EXPRESSION_START_TOKENS = setOf(
             CASE, CAST, EXTRACT, TRIM, EXISTS, FUNCTION,
             NUMBER_LITERAL, STRING_LITERAL, LEFT_PARENTHESES,
             MINUS  // Unary minus: SELECT -1, SELECT -u.amount
+        )
+
+        private val SET_OPERATORS = setOf(UNION, INTERSECT, EXCEPT)
+
+        private val VALUE_LITERALS = setOf(
+            STRING_LITERAL, NUMBER_LITERAL, TRUE, FALSE, NULL
+        )
+
+        /** Structural keywords that start JPQL clauses and should not be consumed as aliases. */
+        private val CLAUSE_KEYWORDS = setOf(
+            SELECT, FROM, WHERE,
+            JOIN, INNER, LEFT, RIGHT, FULL, CROSS,
+            ORDER, GROUP, HAVING,
+            ON, FETCH, OFFSET,
+            UNION, INTERSECT, EXCEPT,
+            END_OF_FILE, RIGHT_PARENTHESES
         )
     }
 }

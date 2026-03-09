@@ -4,7 +4,7 @@
 
 ## [Unreleased]
 
-## 1.3.0
+## [1.3.0]
 
 ### Added
 
@@ -27,7 +27,7 @@
 - Support for String Concatenation || Operator
 - Support for EXTRACT(field FROM date) Function
 - Support for Enhanced TRIM Syntax
-- Support for FULL OUTER JOIN and CROSS JOIN 
+- Support for FULL OUTER JOIN and CROSS JOIN
 
 ## [1.1.0]
 
@@ -82,7 +82,8 @@
 - Named (`:param`) and positional (`?1`) parameter preservation
 - Configurable SQL dialect under Settings > Tools > JPQL to SQL
 
-[Unreleased]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.2.0...HEAD
+[Unreleased]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.3.0...HEAD
+[1.3.0]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.2.0...1.3.0
 [1.2.0]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.1.0...1.2.0
 [1.1.0]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.0.3...1.1.0
 [1.0.3]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.0.2...1.0.3

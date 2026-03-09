@@ -14,7 +14,7 @@ class WhereClauseParserTest {
 
     // ──────────── Basic conditions ──────────────────────
 
-    @Test fun testSimpleEquals() = assertEquals(BinaryOperator.EQ, (parse("WHERE u.active = true").condition as BinaryExpression).operator)
+    @Test fun testSimpleEquals() = assertEquals(BinaryOperator.EQUALS, (parse("WHERE u.active = true").condition as BinaryExpression).operator)
     @Test fun testNamedParameter() = assertEquals("userId", (((parse("WHERE u.id = :userId").condition as BinaryExpression).right) as ParameterExpression).name)
     @Test fun testPositionalParameter() = assertEquals(1, (((parse("WHERE u.id = ?1").condition as BinaryExpression).right) as ParameterExpression).position)
 
@@ -64,10 +64,10 @@ class WhereClauseParserTest {
 
     // ──────────── Comparison operators ──────────────────
 
-    @Test fun testEq() = assertEquals(BinaryOperator.EQ, (parse("WHERE u.x = 1").condition as BinaryExpression).operator)
-    @Test fun testNe() = assertEquals(BinaryOperator.NE, (parse("WHERE u.x <> 1").condition as BinaryExpression).operator)
-    @Test fun testLt() = assertEquals(BinaryOperator.LT, (parse("WHERE u.x < 1").condition as BinaryExpression).operator)
-    @Test fun testLe() = assertEquals(BinaryOperator.LE, (parse("WHERE u.x <= 1").condition as BinaryExpression).operator)
-    @Test fun testGt() = assertEquals(BinaryOperator.GT, (parse("WHERE u.x > 1").condition as BinaryExpression).operator)
-    @Test fun testGe() = assertEquals(BinaryOperator.GE, (parse("WHERE u.x >= 1").condition as BinaryExpression).operator)
+    @Test fun testEq() = assertEquals(BinaryOperator.EQUALS, (parse("WHERE u.x = 1").condition as BinaryExpression).operator)
+    @Test fun testNe() = assertEquals(BinaryOperator.NOT_EQUALS, (parse("WHERE u.x <> 1").condition as BinaryExpression).operator)
+    @Test fun testLt() = assertEquals(BinaryOperator.LESS_THAN, (parse("WHERE u.x < 1").condition as BinaryExpression).operator)
+    @Test fun testLe() = assertEquals(BinaryOperator.LESS_THAN_OR_EQUAL, (parse("WHERE u.x <= 1").condition as BinaryExpression).operator)
+    @Test fun testGt() = assertEquals(BinaryOperator.GREATER_THAN, (parse("WHERE u.x > 1").condition as BinaryExpression).operator)
+    @Test fun testGe() = assertEquals(BinaryOperator.GREATER_THAN_OR_EQUAL, (parse("WHERE u.x >= 1").condition as BinaryExpression).operator)
 }

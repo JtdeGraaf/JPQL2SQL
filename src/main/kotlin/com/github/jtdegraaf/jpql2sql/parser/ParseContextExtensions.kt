@@ -118,12 +118,12 @@ fun ParseContext.tryParseArithmeticOperator(): BinaryOperator? = when {
  * @return The parsed [BinaryOperator] or null if no operator found
  */
 fun ParseContext.tryParseComparisonOperator(): BinaryOperator? = when {
-    match(TokenType.EQUALS) -> BinaryOperator.EQ
-    match(TokenType.NOT_EQUALS) -> BinaryOperator.NE
-    match(TokenType.LESS_THAN) -> BinaryOperator.LT
-    match(TokenType.LESS_THAN_OR_EQUAL) -> BinaryOperator.LE
-    match(TokenType.GREATER_THAN) -> BinaryOperator.GT
-    match(TokenType.GREATER_THAN_OR_EQUAL) -> BinaryOperator.GE
+    match(TokenType.EQUALS) -> BinaryOperator.EQUALS
+    match(TokenType.NOT_EQUALS) -> BinaryOperator.NOT_EQUALS
+    match(TokenType.LESS_THAN) -> BinaryOperator.LESS_THAN
+    match(TokenType.LESS_THAN_OR_EQUAL) -> BinaryOperator.LESS_THAN_OR_EQUAL
+    match(TokenType.GREATER_THAN) -> BinaryOperator.GREATER_THAN
+    match(TokenType.GREATER_THAN_OR_EQUAL) -> BinaryOperator.GREATER_THAN_OR_EQUAL
     else -> null
 }
 
@@ -173,4 +173,57 @@ fun ParseContext.parseTrimMode(): TrimMode = when {
     match(TokenType.TRAILING) -> TrimMode.TRAILING
     match(TokenType.BOTH) -> TrimMode.BOTH
     else -> TrimMode.BOTH
+}
+
+/**
+ * Parses content enclosed in parentheses.
+ * Pattern: ( content )
+ * @param parser Lambda to parse the content inside parentheses
+ * @return The result of the parser lambda
+ */
+inline fun <T> ParseContext.parseInParentheses(parser: () -> T): T {
+    expect(TokenType.LEFT_PARENTHESES)
+    val result = parser()
+    expect(TokenType.RIGHT_PARENTHESES)
+    return result
+}
+
+/**
+ * Attempts to parse a JOIN type keyword (INNER, LEFT, RIGHT, FULL, CROSS, or plain JOIN).
+ * Handles optional OUTER keyword for LEFT/RIGHT/FULL joins.
+ * @return The parsed [JoinType] or null if no join keyword found
+ */
+fun ParseContext.tryParseJoinType(): JoinType? = when {
+    match(TokenType.INNER) -> { expect(TokenType.JOIN); JoinType.INNER }
+    match(TokenType.LEFT) -> { match(TokenType.OUTER); expect(TokenType.JOIN); JoinType.LEFT }
+    match(TokenType.RIGHT) -> { match(TokenType.OUTER); expect(TokenType.JOIN); JoinType.RIGHT }
+    match(TokenType.FULL) -> { match(TokenType.OUTER); expect(TokenType.JOIN); JoinType.FULL }
+    match(TokenType.CROSS) -> { expect(TokenType.JOIN); JoinType.CROSS }
+    match(TokenType.JOIN) -> JoinType.INNER
+    else -> null
+}
+
+/**
+ * Parses an ORDER BY direction (ASC or DESC).
+ * @return The parsed [OrderDirection], defaults to ASC if not specified
+ */
+fun ParseContext.parseOrderDirection(): OrderDirection = when {
+    match(TokenType.ASC) -> OrderDirection.ASC
+    match(TokenType.DESC) -> OrderDirection.DESC
+    else -> OrderDirection.ASC
+}
+
+/**
+ * Parses an optional NULLS FIRST/LAST ordering.
+ * Pattern: NULLS (FIRST | LAST)
+ * @return The parsed [NullsOrdering] or null if NULLS keyword not present
+ * @throws JpqlParseException if NULLS is present but not followed by FIRST or LAST
+ */
+fun ParseContext.parseNullsOrdering(): NullsOrdering? {
+    if (!match(TokenType.NULLS)) return null
+    return when {
+        match(TokenType.FIRST) -> NullsOrdering.FIRST
+        match(TokenType.LAST) -> NullsOrdering.LAST
+        else -> throw parseError("Expected FIRST or LAST after NULLS")
+    }
 }

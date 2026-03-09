@@ -16,7 +16,7 @@ class HavingClauseParserTest {
     fun testHavingWithAggregate() {
         val having = parse("HAVING COUNT(u) > 5")
         val cond = having.condition as BinaryExpression
-        assertEquals(BinaryOperator.GT, cond.operator)
+        assertEquals(BinaryOperator.GREATER_THAN, cond.operator)
         assertTrue(cond.left is AggregateExpression)
     }
 
@@ -24,7 +24,7 @@ class HavingClauseParserTest {
     fun testHavingCountStar() {
         val having = parse("HAVING COUNT(*) >= 10")
         val cond = having.condition as BinaryExpression
-        assertEquals(BinaryOperator.GE, cond.operator)
+        assertEquals(BinaryOperator.GREATER_THAN_OR_EQUAL, cond.operator)
         val agg = cond.left as AggregateExpression
         assertEquals(AggregateFunction.COUNT, agg.function)
     }
@@ -48,7 +48,7 @@ class HavingClauseParserTest {
     fun testHavingSimpleComparison() {
         val having = parse("HAVING u.total > 50")
         val cond = having.condition as BinaryExpression
-        assertEquals(BinaryOperator.GT, cond.operator)
+        assertEquals(BinaryOperator.GREATER_THAN, cond.operator)
     }
 }
 

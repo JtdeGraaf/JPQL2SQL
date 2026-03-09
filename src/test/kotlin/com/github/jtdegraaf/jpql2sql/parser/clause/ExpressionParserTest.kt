@@ -44,12 +44,12 @@ class ExpressionParserTest {
 
     // ──────────── Comparison operators ──────────────────
 
-    @Test fun testEquals() = assertEquals(BinaryOperator.EQ, (parseExpr("u.x = 1") as BinaryExpression).operator)
-    @Test fun testNotEquals() = assertEquals(BinaryOperator.NE, (parseExpr("u.x <> 1") as BinaryExpression).operator)
-    @Test fun testLessThan() = assertEquals(BinaryOperator.LT, (parseExpr("u.x < 1") as BinaryExpression).operator)
-    @Test fun testLessOrEqual() = assertEquals(BinaryOperator.LE, (parseExpr("u.x <= 1") as BinaryExpression).operator)
-    @Test fun testGreaterThan() = assertEquals(BinaryOperator.GT, (parseExpr("u.x > 1") as BinaryExpression).operator)
-    @Test fun testGreaterOrEqual() = assertEquals(BinaryOperator.GE, (parseExpr("u.x >= 1") as BinaryExpression).operator)
+    @Test fun testEquals() = assertEquals(BinaryOperator.EQUALS, (parseExpr("u.x = 1") as BinaryExpression).operator)
+    @Test fun testNotEquals() = assertEquals(BinaryOperator.NOT_EQUALS, (parseExpr("u.x <> 1") as BinaryExpression).operator)
+    @Test fun testLessThan() = assertEquals(BinaryOperator.LESS_THAN, (parseExpr("u.x < 1") as BinaryExpression).operator)
+    @Test fun testLessOrEqual() = assertEquals(BinaryOperator.LESS_THAN_OR_EQUAL, (parseExpr("u.x <= 1") as BinaryExpression).operator)
+    @Test fun testGreaterThan() = assertEquals(BinaryOperator.GREATER_THAN, (parseExpr("u.x > 1") as BinaryExpression).operator)
+    @Test fun testGreaterOrEqual() = assertEquals(BinaryOperator.GREATER_THAN_OR_EQUAL, (parseExpr("u.x >= 1") as BinaryExpression).operator)
 
     // ──────────── Logical operators ─────────────────────
 
@@ -133,7 +133,7 @@ class ExpressionParserTest {
 
     // ──────────── Parenthesized expressions ─────────────
 
-    @Test fun testParenthesized() = assertEquals(BinaryOperator.EQ, (parseExpr("(u.a = 1)") as BinaryExpression).operator)
+    @Test fun testParenthesized() = assertEquals(BinaryOperator.EQUALS, (parseExpr("(u.a = 1)") as BinaryExpression).operator)
 
     // ──────────── Function calls ────────────────────────
 
@@ -257,7 +257,7 @@ class ExpressionParserTest {
     @Test
     fun testCastInComparison() {
         val expr = parseExpr("CAST(u.id AS String) = '123'") as BinaryExpression
-        assertEquals(BinaryOperator.EQ, expr.operator)
+        assertEquals(BinaryOperator.EQUALS, expr.operator)
         assertTrue(expr.left is CastExpression)
     }
 }

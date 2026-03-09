@@ -25,9 +25,7 @@ class FunctionExpressionParser(
         val name = ctx.current.text.uppercase()
         ctx.advance()
         if (!ctx.check(TokenType.LEFT_PARENTHESES)) return FunctionCallExpression(name, emptyList())
-        ctx.expect(TokenType.LEFT_PARENTHESES)
-        val args = ctx.parseCommaSeparatedList { parseExpression() }
-        ctx.expect(TokenType.RIGHT_PARENTHESES)
+        val args = ctx.parseInParentheses { ctx.parseCommaSeparatedList { parseExpression() } }
         return FunctionCallExpression(name, args)
     }
 
@@ -38,23 +36,22 @@ class FunctionExpressionParser(
      */
     fun parseJpqlFunction(): FunctionCallExpression {
         ctx.expect(TokenType.FUNCTION)
-        ctx.expect(TokenType.LEFT_PARENTHESES)
+        return ctx.parseInParentheses {
+            // First argument must be the function name as a string literal
+            if (!ctx.check(TokenType.STRING_LITERAL)) {
+                throw ctx.parseError("FUNCTION requires a string literal as the first argument (function name)")
+            }
+            val nativeFunctionName = ctx.current.text
+            ctx.advance()
 
-        // First argument must be the function name as a string literal
-        if (!ctx.check(TokenType.STRING_LITERAL)) {
-            throw ctx.parseError("FUNCTION requires a string literal as the first argument (function name)")
+            // Parse remaining arguments
+            val args = mutableListOf<Expression>()
+            while (ctx.match(TokenType.COMMA)) {
+                args.add(parseExpression())
+            }
+
+            FunctionCallExpression(nativeFunctionName, args)
         }
-        val nativeFunctionName = ctx.current.text
-        ctx.advance()
-
-        // Parse remaining arguments
-        val args = mutableListOf<Expression>()
-        while (ctx.match(TokenType.COMMA)) {
-            args.add(parseExpression())
-        }
-        ctx.expect(TokenType.RIGHT_PARENTHESES)
-
-        return FunctionCallExpression(nativeFunctionName, args)
     }
 
     /**
@@ -62,12 +59,12 @@ class FunctionExpressionParser(
      */
     fun parseCastExpression(): CastExpression {
         ctx.expect(TokenType.CAST)
-        ctx.expect(TokenType.LEFT_PARENTHESES)
-        val expression = parseExpression()
-        ctx.expect(TokenType.AS)
-        val targetType = ctx.expectIdentifierOrKeyword()
-        ctx.expect(TokenType.RIGHT_PARENTHESES)
-        return CastExpression(expression, targetType)
+        return ctx.parseInParentheses {
+            val expression = parseExpression()
+            ctx.expect(TokenType.AS)
+            val targetType = ctx.expectIdentifierOrKeyword()
+            CastExpression(expression, targetType)
+        }
     }
 
     /**
@@ -75,12 +72,12 @@ class FunctionExpressionParser(
      */
     fun parseExtractExpression(): ExtractExpression {
         ctx.expect(TokenType.EXTRACT)
-        ctx.expect(TokenType.LEFT_PARENTHESES)
-        val field = ctx.parseExtractField()
-        ctx.expect(TokenType.FROM)
-        val source = parseExpression()
-        ctx.expect(TokenType.RIGHT_PARENTHESES)
-        return ExtractExpression(field, source)
+        return ctx.parseInParentheses {
+            val field = ctx.parseExtractField()
+            ctx.expect(TokenType.FROM)
+            val source = parseExpression()
+            ExtractExpression(field, source)
+        }
     }
 
     /**
@@ -88,28 +85,26 @@ class FunctionExpressionParser(
      */
     fun parseTrimExpression(): TrimExpression {
         ctx.expect(TokenType.TRIM)
-        ctx.expect(TokenType.LEFT_PARENTHESES)
+        return ctx.parseInParentheses {
+            // Check if we have extended syntax: TRIM(mode [char] FROM source)
+            val hasMode = ctx.check(TokenType.LEADING) || ctx.check(TokenType.TRAILING) || ctx.check(TokenType.BOTH)
+            if (hasMode) {
+                val mode = ctx.parseTrimMode()
+                val trimChar = if (ctx.check(TokenType.STRING_LITERAL)) {
+                    val char = ctx.current.text
+                    ctx.advance()
+                    char
+                } else null
 
-        // Check if we have extended syntax: TRIM(mode [char] FROM source)
-        val hasMode = ctx.check(TokenType.LEADING) || ctx.check(TokenType.TRAILING) || ctx.check(TokenType.BOTH)
-        if (hasMode) {
-            val mode = ctx.parseTrimMode()
-            val trimChar = if (ctx.check(TokenType.STRING_LITERAL)) {
-                val char = ctx.current.text
-                ctx.advance()
-                char
-            } else null
-
-            ctx.expect(TokenType.FROM)
-            val source = parseExpression()
-            ctx.expect(TokenType.RIGHT_PARENTHESES)
-            return TrimExpression(mode, trimChar, source)
+                ctx.expect(TokenType.FROM)
+                val source = parseExpression()
+                TrimExpression(mode, trimChar, source)
+            } else {
+                // Simple TRIM(expr)
+                val source = parseExpression()
+                TrimExpression(TrimMode.BOTH, null, source)
+            }
         }
-
-        // Simple TRIM(expr)
-        val source = parseExpression()
-        ctx.expect(TokenType.RIGHT_PARENTHESES)
-        return TrimExpression(TrimMode.BOTH, null, source)
     }
 
     /**
@@ -117,9 +112,7 @@ class FunctionExpressionParser(
      */
     fun parseTypeExpression(): TypeExpression {
         ctx.expect(TokenType.TYPE)
-        ctx.expect(TokenType.LEFT_PARENTHESES)
-        val alias = ctx.expectIdentifierOrKeyword()
-        ctx.expect(TokenType.RIGHT_PARENTHESES)
+        val alias = ctx.parseInParentheses { ctx.expectIdentifierOrKeyword() }
         return TypeExpression(alias)
     }
 }

@@ -53,7 +53,7 @@ class JpqlParserTest {
 
         assertNotNull(query.where)
         val condition = query.where!!.condition as BinaryExpression
-        assertEquals(BinaryOperator.EQ, condition.operator)
+        assertEquals(BinaryOperator.EQUALS, condition.operator)
     }
 
     @Test

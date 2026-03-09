@@ -30,7 +30,7 @@ class JoinClauseParserTest {
 
     // ──────────── ON condition ──────────────────────────
 
-    @Test fun testJoinWithOnCondition() { val j = parse("JOIN Order o ON o.userId = u.id"); assertNotNull(j[0].condition); assertEquals(BinaryOperator.EQ, (j[0].condition as BinaryExpression).operator) }
+    @Test fun testJoinWithOnCondition() { val j = parse("JOIN Order o ON o.userId = u.id"); assertNotNull(j[0].condition); assertEquals(BinaryOperator.EQUALS, (j[0].condition as BinaryExpression).operator) }
     @Test fun testJoinWithoutOnCondition() = assertNull(parse("JOIN u.orders o")[0].condition)
 
     // ──────────── Keyword entity names ──────────────────

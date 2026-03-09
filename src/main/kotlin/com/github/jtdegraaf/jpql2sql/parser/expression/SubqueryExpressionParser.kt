@@ -18,9 +18,7 @@ class SubqueryExpressionParser(
      */
     fun parseExistsExpression(): ExistsExpression {
         ctx.expect(TokenType.EXISTS)
-        ctx.expect(TokenType.LEFT_PARENTHESES)
-        val subquery = parseSubquery()
-        ctx.expect(TokenType.RIGHT_PARENTHESES)
+        val subquery = ctx.parseInParentheses { parseSubquery() }
         return ExistsExpression(subquery)
     }
 
@@ -32,9 +30,7 @@ class SubqueryExpressionParser(
         if (!ctx.check(TokenType.LEFT_PARENTHESES)) return null
         if (ctx.peekNext()?.type != TokenType.SELECT) return null
 
-        ctx.expect(TokenType.LEFT_PARENTHESES)
-        val subquery = parseSubquery()
-        ctx.expect(TokenType.RIGHT_PARENTHESES)
+        val subquery = ctx.parseInParentheses { parseSubquery() }
         return SubqueryExpression(subquery)
     }
 }

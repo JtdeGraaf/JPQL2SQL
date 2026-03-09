@@ -72,12 +72,12 @@ class ExpressionConverter(
 
     private fun convertBinary(expr: BinaryExpression): String {
         // Special handling for TYPE() comparisons
-        if (expr.left is TypeExpression && (expr.operator == BinaryOperator.EQ || expr.operator == BinaryOperator.NE)) {
+        if (expr.left is TypeExpression && (expr.operator == BinaryOperator.EQUALS || expr.operator == BinaryOperator.NOT_EQUALS)) {
             return convertTypeComparison(expr.left as TypeExpression, expr.operator, expr.right)
         }
 
         // Special handling for AttributeConverter boolean conversions
-        if (expr.operator == BinaryOperator.EQ || expr.operator == BinaryOperator.NE) {
+        if (expr.operator == BinaryOperator.EQUALS || expr.operator == BinaryOperator.NOT_EQUALS) {
             val convertedComparison = tryConvertWithAttributeConverter(expr)
             if (convertedComparison != null) return convertedComparison
         }
@@ -88,12 +88,12 @@ class ExpressionConverter(
         return when (expr.operator) {
             BinaryOperator.AND -> "$left AND $right"
             BinaryOperator.OR -> "$left OR $right"
-            BinaryOperator.EQ -> "$left = $right"
-            BinaryOperator.NE -> "$left != $right"
-            BinaryOperator.LT -> "$left < $right"
-            BinaryOperator.LE -> "$left <= $right"
-            BinaryOperator.GT -> "$left > $right"
-            BinaryOperator.GE -> "$left >= $right"
+            BinaryOperator.EQUALS -> "$left = $right"
+            BinaryOperator.NOT_EQUALS -> "$left != $right"
+            BinaryOperator.LESS_THAN -> "$left < $right"
+            BinaryOperator.LESS_THAN_OR_EQUAL -> "$left <= $right"
+            BinaryOperator.GREATER_THAN -> "$left > $right"
+            BinaryOperator.GREATER_THAN_OR_EQUAL -> "$left >= $right"
             BinaryOperator.LIKE -> "$left LIKE $right"
             BinaryOperator.NOT_LIKE -> "$left NOT LIKE $right"
             BinaryOperator.IN -> "$left IN $right"
@@ -213,7 +213,7 @@ class ExpressionConverter(
      */
     private fun convertTypeComparison(typeExpr: TypeExpression, operator: BinaryOperator, rightExpr: Expression): String {
         val discriminatorCol = convertTypeExpression(typeExpr)
-        val op = if (operator == BinaryOperator.EQ) "=" else "!="
+        val op = if (operator == BinaryOperator.EQUALS) "=" else "!="
 
         // The right side should be an entity name (PathExpression with single part)
         val discriminatorValue = when (rightExpr) {
@@ -258,7 +258,7 @@ class ExpressionConverter(
         val convertedValue = entityResolver.convertValueWithConverter(entityName, fieldName, literalValue) ?: return null
 
         val columnSql = convertPath(pathExpr)
-        val op = if (expr.operator == BinaryOperator.EQ) "=" else "!="
+        val op = if (expr.operator == BinaryOperator.EQUALS) "=" else "!="
 
         return "$columnSql $op $convertedValue"
     }

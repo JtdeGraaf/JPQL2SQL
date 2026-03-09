@@ -66,15 +66,14 @@ class ComparisonExpressionParser(
         // Collection-valued parameter: IN :param or IN ?1 (without parentheses)
         ctx.parseParameterExpression()?.let { return BinaryExpression(left, operator, it) }
 
-        ctx.expect(TokenType.LEFT_PARENTHESES)
-        if (ctx.check(TokenType.SELECT)) {
-            val subquery = parseSubquery()
-            ctx.expect(TokenType.RIGHT_PARENTHESES)
-            return BinaryExpression(left, operator, SubqueryExpression(subquery))
+        val right = ctx.parseInParentheses {
+            if (ctx.check(TokenType.SELECT)) {
+                SubqueryExpression(parseSubquery())
+            } else {
+                InListExpression(ctx.parseCommaSeparatedList { parseExpression() })
+            }
         }
-        val elements = ctx.parseCommaSeparatedList { parseExpression() }
-        ctx.expect(TokenType.RIGHT_PARENTHESES)
-        return BinaryExpression(left, operator, InListExpression(elements))
+        return BinaryExpression(left, operator, right)
     }
 
     /**
@@ -131,12 +130,12 @@ class ComparisonExpressionParser(
      */
     private fun parseSimpleComparison(left: Expression): Expression? {
         val op = when {
-            ctx.match(TokenType.EQUALS) -> BinaryOperator.EQ
-            ctx.match(TokenType.NOT_EQUALS) -> BinaryOperator.NE
-            ctx.match(TokenType.LESS_THAN) -> BinaryOperator.LT
-            ctx.match(TokenType.LESS_THAN_OR_EQUAL) -> BinaryOperator.LE
-            ctx.match(TokenType.GREATER_THAN) -> BinaryOperator.GT
-            ctx.match(TokenType.GREATER_THAN_OR_EQUAL) -> BinaryOperator.GE
+            ctx.match(TokenType.EQUALS) -> BinaryOperator.EQUALS
+            ctx.match(TokenType.NOT_EQUALS) -> BinaryOperator.NOT_EQUALS
+            ctx.match(TokenType.LESS_THAN) -> BinaryOperator.LESS_THAN
+            ctx.match(TokenType.LESS_THAN_OR_EQUAL) -> BinaryOperator.LESS_THAN_OR_EQUAL
+            ctx.match(TokenType.GREATER_THAN) -> BinaryOperator.GREATER_THAN
+            ctx.match(TokenType.GREATER_THAN_OR_EQUAL) -> BinaryOperator.GREATER_THAN_OR_EQUAL
             else -> return null
         }
         return BinaryExpression(left, op, parseAdditiveExpression())

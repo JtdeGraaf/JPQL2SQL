@@ -13,15 +13,7 @@ class JoinClauseParser(
         val joins = mutableListOf<JoinClause>()
 
         while (true) {
-            val joinType = when {
-                ctx.match(TokenType.INNER) -> { ctx.expect(TokenType.JOIN); JoinType.INNER }
-                ctx.match(TokenType.LEFT) -> { ctx.match(TokenType.OUTER); ctx.expect(TokenType.JOIN); JoinType.LEFT }
-                ctx.match(TokenType.RIGHT) -> { ctx.match(TokenType.OUTER); ctx.expect(TokenType.JOIN); JoinType.RIGHT }
-                ctx.match(TokenType.FULL) -> { ctx.match(TokenType.OUTER); ctx.expect(TokenType.JOIN); JoinType.FULL }
-                ctx.match(TokenType.CROSS) -> { ctx.expect(TokenType.JOIN); JoinType.CROSS }
-                ctx.match(TokenType.JOIN) -> JoinType.INNER
-                else -> break
-            }
+            val joinType = ctx.tryParseJoinType() ?: break
 
             @Suppress("UNUSED_VARIABLE")
             val fetch = ctx.match(TokenType.FETCH)

@@ -32,6 +32,14 @@ class DerivedQueryParser {
         // Special prefix patterns that come before "By"
         private val FIND_ALL_NO_BY = listOf("findAll", "readAll", "getAll", "queryAll", "searchAll", "streamAll")
 
+        // Unified prefix list sorted by length (longest first) for single-pass matching
+        private val ALL_PREFIXES: List<Pair<String, QueryPrefix>> = buildList {
+            FIND_PREFIXES.forEach { add(it to QueryPrefix.FIND) }
+            COUNT_PREFIXES.forEach { add(it to QueryPrefix.COUNT) }
+            EXISTS_PREFIXES.forEach { add(it to QueryPrefix.EXISTS) }
+            DELETE_PREFIXES.forEach { add(it to QueryPrefix.DELETE) }
+        }.sortedByDescending { it.first.length }
+
         // Operators in order of match priority (longest first)
         private val OPERATOR_SUFFIXES = listOf(
             "GreaterThanEqual" to ConditionOperator.GREATER_THAN_EQUAL,
@@ -60,6 +68,19 @@ class DerivedQueryParser {
             "In" to ConditionOperator.IN,
             "Not" to ConditionOperator.IS_NOT
         )
+
+        /**
+         * Matches a method name against all known prefixes.
+         * @return Pair of (QueryPrefix, remaining string after prefix) or null if no match
+         */
+        private fun matchPrefix(methodName: String): Pair<QueryPrefix, String>? {
+            for ((prefixStr, queryPrefix) in ALL_PREFIXES) {
+                if (methodName.startsWith(prefixStr)) {
+                    return queryPrefix to methodName.removePrefix(prefixStr)
+                }
+            }
+            return null
+        }
     }
 
     fun parse(methodName: String, entityName: String): DerivedQueryComponents? {
@@ -82,40 +103,11 @@ class DerivedQueryParser {
             }
         }
 
-        // Match prefix
-        for (p in FIND_PREFIXES) {
-            if (remaining.startsWith(p)) {
-                prefix = QueryPrefix.FIND
-                remaining = remaining.removePrefix(p)
-                break
-            }
-        }
-        if (prefix == null) {
-            for (p in COUNT_PREFIXES) {
-                if (remaining.startsWith(p)) {
-                    prefix = QueryPrefix.COUNT
-                    remaining = remaining.removePrefix(p)
-                    break
-                }
-            }
-        }
-        if (prefix == null) {
-            for (p in EXISTS_PREFIXES) {
-                if (remaining.startsWith(p)) {
-                    prefix = QueryPrefix.EXISTS
-                    remaining = remaining.removePrefix(p)
-                    break
-                }
-            }
-        }
-        if (prefix == null) {
-            for (p in DELETE_PREFIXES) {
-                if (remaining.startsWith(p)) {
-                    prefix = QueryPrefix.DELETE
-                    remaining = remaining.removePrefix(p)
-                    break
-                }
-            }
+        // Match prefix using unified prefix list
+        val prefixMatch = matchPrefix(remaining)
+        if (prefixMatch != null) {
+            prefix = prefixMatch.first
+            remaining = prefixMatch.second
         }
 
         // Handle find/read/get/query/search/stream without explicit "By" but with Distinct/Top/First
@@ -248,26 +240,18 @@ class DerivedQueryParser {
      * This avoids matching "And" in "Anderson" or "Or" in "Order".
      */
     private fun findConnectorIndex(str: String, connector: String): Int {
-        var index = 0
-        while (index < str.length) {
-            val foundIndex = str.indexOf(connector, index)
-            if (foundIndex < 0) return -1
+        var idx = 0
+        while (true) {
+            val found = str.indexOf(connector, idx)
+            if (found < 0) return -1
 
-            // Check if this is at a camelCase boundary
-            // The character before should be lowercase, and connector starts with uppercase
-            if (foundIndex > 0) {
-                val charBefore = str[foundIndex - 1]
-                if (charBefore.isLowerCase() || charBefore.isDigit()) {
-                    // Check if after the connector is uppercase or end of string
-                    val afterConnector = foundIndex + connector.length
-                    if (afterConnector >= str.length || str[afterConnector].isUpperCase()) {
-                        return foundIndex
-                    }
-                }
-            }
-            index = foundIndex + 1
+            val beforeOk = found > 0 && str[found - 1].let { it.isLowerCase() || it.isDigit() }
+            val afterOk = found + connector.length >= str.length ||
+                          str[found + connector.length].isUpperCase()
+
+            if (beforeOk && afterOk) return found
+            idx = found + 1
         }
-        return -1
     }
 
     private fun parseCondition(conditionStr: String, connector: Connector?): PropertyCondition? {

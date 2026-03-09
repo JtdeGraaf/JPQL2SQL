@@ -21,18 +21,16 @@ class AggregateExpressionParser(
      */
     fun parseAggregate(): AggregateExpression {
         val func = ctx.parseAggregateFunction()
-        ctx.expect(TokenType.LEFT_PARENTHESES)
-
-        // Handle COUNT(*)
-        if (func == AggregateFunction.COUNT && ctx.check(TokenType.STAR)) {
-            ctx.advance()
-            ctx.expect(TokenType.RIGHT_PARENTHESES)
-            return AggregateExpression(func, false, PathExpression(listOf("*")))
+        return ctx.parseInParentheses {
+            // Handle COUNT(*)
+            if (func == AggregateFunction.COUNT && ctx.check(TokenType.STAR)) {
+                ctx.advance()
+                AggregateExpression(func, false, PathExpression(listOf("*")))
+            } else {
+                val distinct = ctx.match(TokenType.DISTINCT)
+                val expr = parseExpression()
+                AggregateExpression(func, distinct, expr)
+            }
         }
-
-        val distinct = ctx.match(TokenType.DISTINCT)
-        val expr = parseExpression()
-        ctx.expect(TokenType.RIGHT_PARENTHESES)
-        return AggregateExpression(func, distinct, expr)
     }
 }

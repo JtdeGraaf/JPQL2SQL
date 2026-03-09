@@ -77,26 +77,23 @@ class SelectClauseParser(
     private fun parseConstructorProjection(): ConstructorProjection {
         ctx.expect(TokenType.NEW)
         val className = expr.parseQualifiedName()
-        ctx.expect(TokenType.LEFT_PARENTHESES)
-        val args = ctx.parseCommaSeparatedList { expr.parseExpression() }
-        ctx.expect(TokenType.RIGHT_PARENTHESES)
+        val args = ctx.parseInParentheses { ctx.parseCommaSeparatedList { expr.parseExpression() } }
         return ConstructorProjection(className, args)
     }
 
     private fun parseAggregateProjection(): Projection {
         val func = ctx.parseAggregateFunction()
-        ctx.expect(TokenType.LEFT_PARENTHESES)
-
-        // COUNT(*)
-        if (func == AggregateFunction.COUNT && ctx.check(TokenType.STAR)) {
-            ctx.advance()
-            ctx.expect(TokenType.RIGHT_PARENTHESES)
-            return finalizeAggregate(AggregateFunction.COUNT, false, PathExpression(listOf("*")))
+        val (distinct, expression) = ctx.parseInParentheses {
+            // COUNT(*)
+            if (func == AggregateFunction.COUNT && ctx.check(TokenType.STAR)) {
+                ctx.advance()
+                false to PathExpression(listOf("*"))
+            } else {
+                val distinct = ctx.match(TokenType.DISTINCT)
+                val expression = expr.parseExpression()
+                distinct to expression
+            }
         }
-
-        val distinct = ctx.match(TokenType.DISTINCT)
-        val expression = expr.parseExpression()
-        ctx.expect(TokenType.RIGHT_PARENTHESES)
 
         return finalizeAggregate(func, distinct, expression)
     }

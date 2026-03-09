@@ -19,21 +19,63 @@ class DerivedQueryAstBuilder(
 
     companion object {
         private const val DEFAULT_ALIAS = "e"
+
+        // Group 1: Simple binary operators (direct mapping from ConditionOperator to BinaryOperator)
+        private val SIMPLE_BINARY_OPS = mapOf(
+            ConditionOperator.EQUALS to BinaryOperator.EQUALS,
+            ConditionOperator.IS to BinaryOperator.EQUALS,
+            ConditionOperator.IS_NOT to BinaryOperator.NOT_EQUALS,
+            ConditionOperator.LESS_THAN to BinaryOperator.LESS_THAN,
+            ConditionOperator.BEFORE to BinaryOperator.LESS_THAN,
+            ConditionOperator.LESS_THAN_EQUAL to BinaryOperator.LESS_THAN_OR_EQUAL,
+            ConditionOperator.GREATER_THAN to BinaryOperator.GREATER_THAN,
+            ConditionOperator.AFTER to BinaryOperator.GREATER_THAN,
+            ConditionOperator.GREATER_THAN_EQUAL to BinaryOperator.GREATER_THAN_OR_EQUAL,
+            ConditionOperator.LIKE to BinaryOperator.LIKE,
+            ConditionOperator.NOT_LIKE to BinaryOperator.NOT_LIKE,
+            ConditionOperator.IN to BinaryOperator.IN,
+            ConditionOperator.NOT_IN to BinaryOperator.NOT_IN
+        )
+
+        // Reusable literal expressions
+        private val TRUE_LITERAL = LiteralExpression(true, LiteralType.BOOLEAN)
+        private val FALSE_LITERAL = LiteralExpression(false, LiteralType.BOOLEAN)
+        private val NULL_LITERAL = LiteralExpression(null, LiteralType.NULL)
+        private val ZERO_LITERAL = LiteralExpression(0, LiteralType.NUMBER)
+        private val PERCENT_LITERAL = LiteralExpression("%", LiteralType.STRING)
     }
 
-    private val aliasToEntity = mutableMapOf<String, String>()
-    private val joinPathToAlias = mutableMapOf<String, String>()
-    private val joins = mutableListOf<JoinClause>()
+    /**
+     * Encapsulates mutable state used during AST building.
+     * This includes alias tracking and generated JOIN clauses.
+     */
+    private class BuilderState {
+        val aliasToEntity = mutableMapOf<String, String>()
+        val joinPathToAlias = mutableMapOf<String, String>()
+        val joins = mutableListOf<JoinClause>()
+
+        fun clear() {
+            aliasToEntity.clear()
+            joinPathToAlias.clear()
+            joins.clear()
+        }
+
+        fun registerJoin(joinPath: String, alias: String, entity: String, joinClause: JoinClause) {
+            joinPathToAlias[joinPath] = alias
+            aliasToEntity[alias] = entity
+            joins.add(joinClause)
+        }
+    }
+
+    private val state = BuilderState()
 
     fun build(components: DerivedQueryComponents): JpqlQuery {
         // Reset state
-        aliasToEntity.clear()
-        joinPathToAlias.clear()
-        joins.clear()
+        state.clear()
         joinGenerator.resetAliasCounter()
 
         val alias = DEFAULT_ALIAS
-        aliasToEntity[alias] = components.entityName
+        state.aliasToEntity[alias] = components.entityName
 
         // Collect all property paths that may need joins
         val allPaths = mutableListOf<String>()
@@ -56,7 +98,7 @@ class DerivedQueryAstBuilder(
         return JpqlQuery(
             select = select,
             from = from,
-            joins = joins.toList(),
+            joins = state.joins.toList(),
             where = where,
             groupBy = null,
             having = null,
@@ -82,7 +124,7 @@ class DerivedQueryAstBuilder(
         if (parts.size <= 1) return // No nested path, no joins needed
 
         var currentAlias = rootAlias
-        var currentEntity = aliasToEntity[currentAlias] ?: return
+        var currentEntity = state.aliasToEntity[currentAlias] ?: return
 
         // Process all parts except the last (which is the actual field)
         for (i in 0 until parts.size - 1) {
@@ -90,9 +132,9 @@ class DerivedQueryAstBuilder(
             val joinPath = "$currentAlias.$fieldName"
 
             // Check if we already have a join for this path
-            if (joinPathToAlias.containsKey(joinPath)) {
-                currentAlias = joinPathToAlias[joinPath]!!
-                currentEntity = aliasToEntity[currentAlias] ?: return
+            if (state.joinPathToAlias.containsKey(joinPath)) {
+                currentAlias = state.joinPathToAlias[joinPath]!!
+                currentEntity = state.aliasToEntity[currentAlias] ?: return
                 continue
             }
 
@@ -114,10 +156,7 @@ class DerivedQueryAstBuilder(
 
                 if (targetEntity != null) {
                     val joinClause = joinGenerator.createJoinClause(currentAlias, fieldName)
-                    joinPathToAlias[joinPath] = joinClause.alias
-                    aliasToEntity[joinClause.alias] = targetEntity
-
-                    joins.add(joinClause)
+                    state.registerJoin(joinPath, joinClause.alias, targetEntity, joinClause)
 
                     currentAlias = joinClause.alias
                     currentEntity = targetEntity
@@ -155,7 +194,7 @@ class DerivedQueryAstBuilder(
         while (partIndex < parts.size - 1) {
             val fieldName = parts[partIndex]
             val joinPath = "$currentAlias.$fieldName"
-            val joinAlias = joinPathToAlias[joinPath]
+            val joinAlias = state.joinPathToAlias[joinPath]
             if (joinAlias != null) {
                 currentAlias = joinAlias
                 partIndex++
@@ -232,113 +271,79 @@ class DerivedQueryAstBuilder(
 
     private fun buildConditionExpression(condition: PropertyCondition, alias: String): Expression {
         val propertyPath = resolvePropertyPath(condition.property, alias)
-        val paramName = condition.property.replace(".", "_")
+        val param = ParameterExpression(condition.property.replace(".", "_"), null)
 
-        return when (condition.operator) {
-            ConditionOperator.EQUALS, ConditionOperator.IS ->
-                BinaryExpression(propertyPath, BinaryOperator.EQ, ParameterExpression(paramName, null))
-
-            ConditionOperator.IS_NOT ->
-                BinaryExpression(propertyPath, BinaryOperator.NE, ParameterExpression(paramName, null))
-
-            ConditionOperator.LIKE ->
-                BinaryExpression(propertyPath, BinaryOperator.LIKE, ParameterExpression(paramName, null))
-
-            ConditionOperator.NOT_LIKE ->
-                BinaryExpression(propertyPath, BinaryOperator.NOT_LIKE, ParameterExpression(paramName, null))
-
-            ConditionOperator.STARTING_WITH ->
-                BinaryExpression(
-                    propertyPath,
-                    BinaryOperator.LIKE,
-                    FunctionCallExpression("CONCAT", listOf(
-                        ParameterExpression(paramName, null),
-                        LiteralExpression("%", LiteralType.STRING)
-                    ))
-                )
-
-            ConditionOperator.ENDING_WITH ->
-                BinaryExpression(
-                    propertyPath,
-                    BinaryOperator.LIKE,
-                    FunctionCallExpression("CONCAT", listOf(
-                        LiteralExpression("%", LiteralType.STRING),
-                        ParameterExpression(paramName, null)
-                    ))
-                )
-
-            ConditionOperator.CONTAINING ->
-                BinaryExpression(
-                    propertyPath,
-                    BinaryOperator.LIKE,
-                    FunctionCallExpression("CONCAT", listOf(
-                        LiteralExpression("%", LiteralType.STRING),
-                        ParameterExpression(paramName, null),
-                        LiteralExpression("%", LiteralType.STRING)
-                    ))
-                )
-
-            ConditionOperator.NOT_CONTAINING ->
-                BinaryExpression(
-                    propertyPath,
-                    BinaryOperator.NOT_LIKE,
-                    FunctionCallExpression("CONCAT", listOf(
-                        LiteralExpression("%", LiteralType.STRING),
-                        ParameterExpression(paramName, null),
-                        LiteralExpression("%", LiteralType.STRING)
-                    ))
-                )
-
-            ConditionOperator.LESS_THAN, ConditionOperator.BEFORE ->
-                BinaryExpression(propertyPath, BinaryOperator.LT, ParameterExpression(paramName, null))
-
-            ConditionOperator.LESS_THAN_EQUAL ->
-                BinaryExpression(propertyPath, BinaryOperator.LE, ParameterExpression(paramName, null))
-
-            ConditionOperator.GREATER_THAN, ConditionOperator.AFTER ->
-                BinaryExpression(propertyPath, BinaryOperator.GT, ParameterExpression(paramName, null))
-
-            ConditionOperator.GREATER_THAN_EQUAL ->
-                BinaryExpression(propertyPath, BinaryOperator.GE, ParameterExpression(paramName, null))
-
-            ConditionOperator.BETWEEN ->
-                BinaryExpression(
-                    propertyPath,
-                    BinaryOperator.BETWEEN,
-                    BetweenExpression(
-                        ParameterExpression("${paramName}Start", null),
-                        ParameterExpression("${paramName}End", null)
-                    )
-                )
-
-            ConditionOperator.IN ->
-                BinaryExpression(propertyPath, BinaryOperator.IN, ParameterExpression(paramName, null))
-
-            ConditionOperator.NOT_IN ->
-                BinaryExpression(propertyPath, BinaryOperator.NOT_IN, ParameterExpression(paramName, null))
-
-            ConditionOperator.IS_NULL ->
-                BinaryExpression(propertyPath, BinaryOperator.IS_NULL, LiteralExpression(null, LiteralType.NULL))
-
-            ConditionOperator.IS_NOT_NULL ->
-                BinaryExpression(propertyPath, BinaryOperator.IS_NOT_NULL, LiteralExpression(null, LiteralType.NULL))
-
-            ConditionOperator.IS_TRUE ->
-                BinaryExpression(propertyPath, BinaryOperator.EQ, LiteralExpression(true, LiteralType.BOOLEAN))
-
-            ConditionOperator.IS_FALSE ->
-                BinaryExpression(propertyPath, BinaryOperator.EQ, LiteralExpression(false, LiteralType.BOOLEAN))
-
-            ConditionOperator.IS_EMPTY ->
-                FunctionCallExpression("SIZE", listOf(propertyPath)).let { sizeExpr ->
-                    BinaryExpression(sizeExpr, BinaryOperator.EQ, LiteralExpression(0, LiteralType.NUMBER))
-                }
-
-            ConditionOperator.IS_NOT_EMPTY ->
-                FunctionCallExpression("SIZE", listOf(propertyPath)).let { sizeExpr ->
-                    BinaryExpression(sizeExpr, BinaryOperator.GT, LiteralExpression(0, LiteralType.NUMBER))
-                }
+        // Group 1: Simple binary operators (direct mapping)
+        SIMPLE_BINARY_OPS[condition.operator]?.let {
+            return BinaryExpression(propertyPath, it, param)
         }
+
+        // Group 2: LIKE with pattern
+        return when (condition.operator) {
+            ConditionOperator.STARTING_WITH -> buildLikeWithPattern(propertyPath, param, suffix = PERCENT_LITERAL)
+            ConditionOperator.ENDING_WITH -> buildLikeWithPattern(propertyPath, param, prefix = PERCENT_LITERAL)
+            ConditionOperator.CONTAINING -> buildLikeWithPattern(propertyPath, param, PERCENT_LITERAL, PERCENT_LITERAL)
+            ConditionOperator.NOT_CONTAINING -> BinaryExpression(
+                propertyPath,
+                BinaryOperator.NOT_LIKE,
+                FunctionCallExpression("CONCAT", listOf(PERCENT_LITERAL, param, PERCENT_LITERAL))
+            )
+
+            // Group 3: Boolean/Null checks
+            ConditionOperator.IS_TRUE -> BinaryExpression(propertyPath, BinaryOperator.EQUALS, TRUE_LITERAL)
+            ConditionOperator.IS_FALSE -> BinaryExpression(propertyPath, BinaryOperator.EQUALS, FALSE_LITERAL)
+            ConditionOperator.IS_NULL -> BinaryExpression(propertyPath, BinaryOperator.IS_NULL, NULL_LITERAL)
+            ConditionOperator.IS_NOT_NULL -> BinaryExpression(propertyPath, BinaryOperator.IS_NOT_NULL, NULL_LITERAL)
+
+            // Group 4: Collection operations
+            ConditionOperator.IS_EMPTY -> BinaryExpression(
+                FunctionCallExpression("SIZE", listOf(propertyPath)),
+                BinaryOperator.EQUALS,
+                ZERO_LITERAL
+            )
+            ConditionOperator.IS_NOT_EMPTY -> BinaryExpression(
+                FunctionCallExpression("SIZE", listOf(propertyPath)),
+                BinaryOperator.GREATER_THAN,
+                ZERO_LITERAL
+            )
+
+            // Group 5: Between
+            ConditionOperator.BETWEEN -> buildBetweenExpression(propertyPath, condition.property)
+
+            // Handled by SIMPLE_BINARY_OPS
+            else -> throw IllegalArgumentException("Unhandled operator: ${condition.operator}")
+        }
+    }
+
+    /**
+     * Builds a LIKE expression with CONCAT pattern for prefix/suffix matching.
+     */
+    private fun buildLikeWithPattern(
+        propertyPath: PathExpression,
+        param: ParameterExpression,
+        prefix: LiteralExpression? = null,
+        suffix: LiteralExpression? = null
+    ): BinaryExpression {
+        val args = mutableListOf<Expression>()
+        prefix?.let { args.add(it) }
+        args.add(param)
+        suffix?.let { args.add(it) }
+        return BinaryExpression(propertyPath, BinaryOperator.LIKE, FunctionCallExpression("CONCAT", args))
+    }
+
+    /**
+     * Builds a BETWEEN expression with Start/End parameters.
+     */
+    private fun buildBetweenExpression(propertyPath: PathExpression, property: String): BinaryExpression {
+        val paramName = property.replace(".", "_")
+        return BinaryExpression(
+            propertyPath,
+            BinaryOperator.BETWEEN,
+            BetweenExpression(
+                ParameterExpression("${paramName}Start", null),
+                ParameterExpression("${paramName}End", null)
+            )
+        )
     }
 
     private fun buildOrderByClause(orderByParts: List<OrderByPart>?, alias: String): OrderByClause? {

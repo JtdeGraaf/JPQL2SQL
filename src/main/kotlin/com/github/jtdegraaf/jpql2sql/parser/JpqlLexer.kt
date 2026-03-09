@@ -453,4 +453,19 @@ enum class TokenType(val category: TokenCategory) {
      * Returns true if this is an arithmetic operator (+, -, *, /, ||).
      */
     fun isArithmeticOperator(): Boolean = category == TokenCategory.ARITHMETIC_OPERATOR
+
+    /**
+     * Returns true if this token can start an expression in a SELECT projection.
+     * This includes: CASE, CAST, EXTRACT, TRIM, EXISTS, FUNCTION, literals,
+     * parentheses, and built-in functions.
+     */
+    fun isExpressionStart(): Boolean = this in EXPRESSION_START_TOKENS || isFunction()
+
+    companion object {
+        private val EXPRESSION_START_TOKENS = setOf(
+            CASE, CAST, EXTRACT, TRIM, EXISTS, FUNCTION,
+            NUMBER_LITERAL, STRING_LITERAL, LEFT_PARENTHESES,
+            MINUS  // Unary minus: SELECT -1, SELECT -u.amount
+        )
+    }
 }

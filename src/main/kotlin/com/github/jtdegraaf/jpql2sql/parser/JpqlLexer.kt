@@ -487,6 +487,12 @@ enum class TokenType(val category: TokenCategory) {
      */
     fun isClauseKeyword(): Boolean = this in CLAUSE_KEYWORDS
 
+    /**
+     * Returns true if this token marks the end of a projection in SELECT clause.
+     * Used to detect projection boundaries for error recovery.
+     */
+    fun isProjectionEnd(): Boolean = this == COMMA || this == FROM || this == END_OF_FILE
+
     companion object {
         private val EXPRESSION_START_TOKENS = setOf(
             CASE, CAST, EXTRACT, TRIM, EXISTS, FUNCTION,

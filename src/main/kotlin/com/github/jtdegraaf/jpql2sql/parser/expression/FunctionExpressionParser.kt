@@ -26,10 +26,7 @@ class FunctionExpressionParser(
         ctx.advance()
         if (!ctx.check(TokenType.LEFT_PARENTHESES)) return FunctionCallExpression(name, emptyList())
         ctx.expect(TokenType.LEFT_PARENTHESES)
-        val args = mutableListOf<Expression>()
-        if (!ctx.check(TokenType.RIGHT_PARENTHESES)) {
-            do { args.add(parseExpression()) } while (ctx.match(TokenType.COMMA))
-        }
+        val args = ctx.parseCommaSeparatedList { parseExpression() }
         ctx.expect(TokenType.RIGHT_PARENTHESES)
         return FunctionCallExpression(name, args)
     }
@@ -79,15 +76,7 @@ class FunctionExpressionParser(
     fun parseExtractExpression(): ExtractExpression {
         ctx.expect(TokenType.EXTRACT)
         ctx.expect(TokenType.LEFT_PARENTHESES)
-        val field = when {
-            ctx.match(TokenType.YEAR) -> ExtractField.YEAR
-            ctx.match(TokenType.MONTH) -> ExtractField.MONTH
-            ctx.match(TokenType.DAY) -> ExtractField.DAY
-            ctx.match(TokenType.HOUR) -> ExtractField.HOUR
-            ctx.match(TokenType.MINUTE) -> ExtractField.MINUTE
-            ctx.match(TokenType.SECOND) -> ExtractField.SECOND
-            else -> throw ctx.parseError("Expected date/time field (YEAR, MONTH, DAY, HOUR, MINUTE, SECOND)")
-        }
+        val field = ctx.parseExtractField()
         ctx.expect(TokenType.FROM)
         val source = parseExpression()
         ctx.expect(TokenType.RIGHT_PARENTHESES)
@@ -101,14 +90,10 @@ class FunctionExpressionParser(
         ctx.expect(TokenType.TRIM)
         ctx.expect(TokenType.LEFT_PARENTHESES)
 
-        val mode = when {
-            ctx.match(TokenType.LEADING) -> TrimMode.LEADING
-            ctx.match(TokenType.TRAILING) -> TrimMode.TRAILING
-            ctx.match(TokenType.BOTH) -> TrimMode.BOTH
-            else -> null
-        }
-
-        if (mode != null) {
+        // Check if we have extended syntax: TRIM(mode [char] FROM source)
+        val hasMode = ctx.check(TokenType.LEADING) || ctx.check(TokenType.TRAILING) || ctx.check(TokenType.BOTH)
+        if (hasMode) {
+            val mode = ctx.parseTrimMode()
             val trimChar = if (ctx.check(TokenType.STRING_LITERAL)) {
                 val char = ctx.current.text
                 ctx.advance()

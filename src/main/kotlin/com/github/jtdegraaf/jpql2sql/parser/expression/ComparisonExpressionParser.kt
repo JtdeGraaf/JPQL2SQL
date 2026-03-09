@@ -72,8 +72,7 @@ class ComparisonExpressionParser(
             ctx.expect(TokenType.RIGHT_PARENTHESES)
             return BinaryExpression(left, operator, SubqueryExpression(subquery))
         }
-        val elements = mutableListOf<Expression>()
-        do { elements.add(parseExpression()) } while (ctx.match(TokenType.COMMA))
+        val elements = ctx.parseCommaSeparatedList { parseExpression() }
         ctx.expect(TokenType.RIGHT_PARENTHESES)
         return BinaryExpression(left, operator, InListExpression(elements))
     }

@@ -27,13 +27,7 @@ class FromClauseParser(
 
     private fun parseEntityWithAlias(): Pair<String, String> {
         val entityName = ctx.expectIdentifierOrKeyword()
-        val alias = if (ctx.match(TokenType.AS)) {
-            ctx.expectIdentifierOrKeyword()
-        } else if (ctx.check(TokenType.IDENTIFIER) || (ctx.current.type.isKeyword() && !ctx.isClauseKeyword(ctx.current.type))) {
-            ctx.expectIdentifierOrKeyword()
-        } else {
-            entityName.lowercase()
-        }
+        val alias = ctx.parseAliasOrDefault(allowKeywords = true) { entityName.lowercase() }
         return entityName to alias
     }
 }

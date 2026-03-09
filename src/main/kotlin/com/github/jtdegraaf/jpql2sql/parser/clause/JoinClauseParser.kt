@@ -27,13 +27,7 @@ class JoinClauseParser(
             val fetch = ctx.match(TokenType.FETCH)
             val path = expr.parsePathExpression()
 
-            val alias = if (ctx.match(TokenType.AS)) {
-                ctx.expectIdentifier()
-            } else if (ctx.check(TokenType.IDENTIFIER) && !ctx.check(TokenType.ON) && !ctx.check(TokenType.WHERE)) {
-                ctx.expectIdentifier()
-            } else {
-                path.parts.last()
-            }
+            val alias = ctx.parseAliasOrDefault { path.parts.last() }
 
             val condition = if (ctx.match(TokenType.ON)) expr.parseExpression() else null
             joins.add(JoinClause(joinType, path, alias, condition))

@@ -30,7 +30,7 @@ class SelectClauseParser(
     }
 
     private fun skipGarbageBetweenProjections(projections: MutableList<Projection>) {
-        if (!ctx.check(TokenType.COMMA) && !ctx.check(TokenType.FROM) && !ctx.check(TokenType.END_OF_FILE)) {
+        if (!ctx.current.type.isProjectionEnd()) {
             val garbage = collectUntilProjectionEnd()
             if (garbage.isNotEmpty()) {
                 projections.add(FieldProjection(UnparsedFragment(garbage), null))
@@ -42,7 +42,7 @@ class SelectClauseParser(
         val collected = StringBuilder()
         var parenDepth = 0
         while (!ctx.check(TokenType.END_OF_FILE)) {
-            if (parenDepth <= 0 && (ctx.check(TokenType.COMMA) || ctx.check(TokenType.FROM))) break
+            if (parenDepth <= 0 && ctx.current.type.isProjectionEnd()) break
             if (ctx.check(TokenType.LEFT_PARENTHESES)) parenDepth++
             if (ctx.check(TokenType.RIGHT_PARENTHESES)) parenDepth--
             collected.append(ctx.current.text)
@@ -78,25 +78,13 @@ class SelectClauseParser(
         ctx.expect(TokenType.NEW)
         val className = expr.parseQualifiedName()
         ctx.expect(TokenType.LEFT_PARENTHESES)
-        val args = mutableListOf<Expression>()
-        if (!ctx.check(TokenType.RIGHT_PARENTHESES)) {
-            do { args.add(expr.parseExpression()) } while (ctx.match(TokenType.COMMA))
-        }
+        val args = ctx.parseCommaSeparatedList { expr.parseExpression() }
         ctx.expect(TokenType.RIGHT_PARENTHESES)
         return ConstructorProjection(className, args)
     }
 
     private fun parseAggregateProjection(): Projection {
-        val func = when (ctx.current.type) {
-            TokenType.COUNT -> AggregateFunction.COUNT
-            TokenType.SUM -> AggregateFunction.SUM
-            TokenType.AVG -> AggregateFunction.AVG
-            TokenType.MIN -> AggregateFunction.MIN
-            TokenType.MAX -> AggregateFunction.MAX
-            else -> error("Expected aggregate function")
-        }
-
-        ctx.advance()
+        val func = ctx.parseAggregateFunction()
         ctx.expect(TokenType.LEFT_PARENTHESES)
 
         // COUNT(*)
@@ -151,14 +139,7 @@ class SelectClauseParser(
     private fun parseRemainingArithmetic(left: Expression): Expression {
         var result = left
         while (ctx.current.type.isArithmeticOperator()) {
-            val op = when {
-                ctx.match(TokenType.PLUS) -> BinaryOperator.ADD
-                ctx.match(TokenType.MINUS) -> BinaryOperator.SUBTRACT
-                ctx.match(TokenType.STAR) -> BinaryOperator.MULTIPLY
-                ctx.match(TokenType.SLASH) -> BinaryOperator.DIVIDE
-                ctx.match(TokenType.CONCAT_OP) -> BinaryOperator.CONCAT
-                else -> break
-            }
+            val op = ctx.tryParseArithmeticOperator() ?: break
             val right = when {
                 ctx.check(TokenType.LEFT_PARENTHESES) -> expr.parseExpression()
                 else -> ctx.parseLiteralExpression() ?: expr.parsePathExpression()
@@ -169,15 +150,7 @@ class SelectClauseParser(
     }
 
     private fun parseRemainingComparison(left: Expression): Expression {
-        val op = when {
-            ctx.match(TokenType.EQUALS) -> BinaryOperator.EQ
-            ctx.match(TokenType.NOT_EQUALS) -> BinaryOperator.NE
-            ctx.match(TokenType.LESS_THAN) -> BinaryOperator.LT
-            ctx.match(TokenType.LESS_THAN_OR_EQUAL) -> BinaryOperator.LE
-            ctx.match(TokenType.GREATER_THAN) -> BinaryOperator.GT
-            ctx.match(TokenType.GREATER_THAN_OR_EQUAL) -> BinaryOperator.GE
-            else -> return left
-        }
+        val op = ctx.tryParseComparisonOperator() ?: return left
         return BinaryExpression(left, op, expr.parseExpression())
     }
 }

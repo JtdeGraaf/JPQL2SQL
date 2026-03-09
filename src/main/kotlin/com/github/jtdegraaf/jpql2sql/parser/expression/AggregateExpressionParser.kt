@@ -20,15 +20,7 @@ class AggregateExpressionParser(
      * (e.g., in HAVING clause: HAVING COUNT(m) > 5).
      */
     fun parseAggregate(): AggregateExpression {
-        val func = when (ctx.current.type) {
-            TokenType.COUNT -> AggregateFunction.COUNT
-            TokenType.SUM -> AggregateFunction.SUM
-            TokenType.AVG -> AggregateFunction.AVG
-            TokenType.MIN -> AggregateFunction.MIN
-            TokenType.MAX -> AggregateFunction.MAX
-            else -> throw ctx.parseError("Expected aggregate function")
-        }
-        ctx.advance()
+        val func = ctx.parseAggregateFunction()
         ctx.expect(TokenType.LEFT_PARENTHESES)
 
         // Handle COUNT(*)

@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## 1.4.0
+
+### Changed
+
+- Refactored parser architecture: extracted specialized expression parsers (FunctionExpressionParser, AggregateExpressionParser, SubqueryExpressionParser, ComparisonExpressionParser) from monolithic ExpressionParser
+- Added reusable parsing helpers to ParseContextExtensions: `parseInParentheses()`, `tryParseJoinType()`, `parseOrderDirection()`, `parseNullsOrdering()`
+- Grouped token types in TokenType enum for better organization (clause keywords, expression starters, comparison operators, etc.)
+- Consolidated derived query prefix matching into unified lookup with `ALL_PREFIXES` map
+- Encapsulated JOIN state management in DerivedQueryAstBuilder with dedicated `BuilderState` class
+- Refactored condition operator handling with grouped patterns and reusable literal constants
+
 ## [1.3.0]
 
 ### Added
@@ -82,7 +93,8 @@
 - Named (`:param`) and positional (`?1`) parameter preservation
 - Configurable SQL dialect under Settings > Tools > JPQL to SQL
 
-[Unreleased]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.3.0...HEAD
+[Unreleased]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.4.0...HEAD
+[1.4.0]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.3.0...1.4.0
 [1.3.0]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.2.0...1.3.0
 [1.2.0]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.1.0...1.2.0
 [1.1.0]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.0.3...1.1.0

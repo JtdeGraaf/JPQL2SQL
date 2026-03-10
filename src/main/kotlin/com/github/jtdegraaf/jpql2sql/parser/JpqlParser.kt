@@ -41,8 +41,7 @@ class JpqlParser(input: String) {
         // Check for set operations
         val operation = parseSetOperation() ?: return left
 
-        val right = parseCompound()
-        return when (right) {
+        return when (val right = parseCompound()) {
             is JpqlQuery -> CompoundQuery(left, operation, right)
             is CompoundQuery -> CompoundQuery(left, operation, right.left).let {
                 // Chain: (left op right.left) op right.right

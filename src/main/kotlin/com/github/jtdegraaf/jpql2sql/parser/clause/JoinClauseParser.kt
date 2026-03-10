@@ -3,7 +3,7 @@ package com.github.jtdegraaf.jpql2sql.parser.clause
 import com.github.jtdegraaf.jpql2sql.parser.*
 
 /**
- * Parses JOIN clauses: `[INNER|LEFT|RIGHT] [OUTER] JOIN [FETCH] path [AS] alias [ON condition]`.
+ * Parses JOIN clauses with optional join type, OUTER keyword, FETCH, alias, and ON condition.
  */
 class JoinClauseParser(
     private val ctx: ParseContext,

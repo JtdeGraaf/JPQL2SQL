@@ -62,7 +62,7 @@ class JoinConverter(
         }
 
         // @JoinTable (many-to-many)
-        if (joinInfo != null && joinInfo.joinTable != null) {
+        if (joinInfo?.joinTable != null) {
             val parentAlias = join.path.parts[0]
             val jtAlias = "${join.alias}_jt"
             return buildString {

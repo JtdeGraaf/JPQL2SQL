@@ -10,7 +10,7 @@ import com.github.jtdegraaf.jpql2sql.parser.*
  * - Native function syntax: FUNCTION('native_name', arg1, arg2)
  * - CAST(expression AS type)
  * - EXTRACT(field FROM source)
- * - TRIM([LEADING|TRAILING|BOTH] [char] FROM source)
+ * - TRIM with optional mode (LEADING/TRAILING/BOTH), optional trim character, and FROM source
  * - TYPE(entity) for polymorphic queries
  */
 class FunctionExpressionParser(
@@ -81,7 +81,7 @@ class FunctionExpressionParser(
     }
 
     /**
-     * Parses TRIM([LEADING|TRAILING|BOTH] [char] FROM source) or simple TRIM(source) expression.
+     * Parses TRIM expression with optional mode, trim character, and FROM clause, or simple TRIM(source).
      */
     fun parseTrimExpression(): TrimExpression {
         ctx.expect(TokenType.TRIM)

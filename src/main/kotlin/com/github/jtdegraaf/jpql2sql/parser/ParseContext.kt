@@ -8,9 +8,8 @@ package com.github.jtdegraaf.jpql2sql.parser
  */
 class ParseContext(input: String) {
 
-    val tokens: List<Token> = JpqlLexer(input).tokens
-    var pos: Int = 0
-        private set
+    private val tokens: List<Token> = JpqlLexer(input).tokens
+    private var pos: Int = 0
 
     val current: Token get() = tokens[pos]
 

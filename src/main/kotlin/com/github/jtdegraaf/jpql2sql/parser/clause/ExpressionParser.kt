@@ -154,9 +154,4 @@ class ExpressionParser(
 
         return path
     }
-
-    /**
-     * Parses a standard function call - delegates to [FunctionExpressionParser].
-     */
-    fun parseFunctionCall(): FunctionCallExpression = functionParser.parseFunctionCall()
 }

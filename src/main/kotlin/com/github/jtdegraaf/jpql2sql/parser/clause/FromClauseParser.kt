@@ -3,7 +3,7 @@ package com.github.jtdegraaf.jpql2sql.parser.clause
 import com.github.jtdegraaf.jpql2sql.parser.*
 
 /**
- * Parses the FROM clause: `FROM EntityName [AS] alias [, EntityName [AS] alias ...]`.
+ * Parses the FROM clause with entity name, optional AS keyword, alias, and comma-separated additional entities.
  * Supports comma-separated multiple entities for cross joins.
  */
 class FromClauseParser(

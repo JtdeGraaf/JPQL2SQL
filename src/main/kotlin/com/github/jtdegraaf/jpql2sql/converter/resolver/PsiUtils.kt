@@ -29,7 +29,7 @@ object PsiUtils {
         return listOfNotNull(field, getter)
     }
 
-    fun hasAnyAnnotation(member: PsiMember, fqns: List<String>): Boolean {
+    private fun hasAnyAnnotation(member: PsiMember, fqns: List<String>): Boolean {
         return fqns.any { fqn ->
             when (member) {
                 is PsiField -> member.hasAnnotation(fqn)
@@ -88,7 +88,7 @@ object PsiUtils {
      * For example, for `@Convert(converter = BooleanToStringConverter.class)`,
      * calling this with "converter" returns "BooleanToStringConverter".
      */
-    fun getAnnotationClassValue(annotation: PsiAnnotation, attributeName: String): String? {
+    private fun getAnnotationClassValue(annotation: PsiAnnotation, attributeName: String): String? {
         val value = annotation.findAttributeValue(attributeName) ?: return null
         val text = value.text
         // Remove .class suffix and return the class name
@@ -150,11 +150,11 @@ object PsiUtils {
         return firstAnnotation?.let { getAnnotationStringValue(it, nestedAttribute) }
     }
 
-    fun resolveFieldType(field: PsiField, project: Project): PsiClass? {
+    private fun resolveFieldType(field: PsiField, project: Project): PsiClass? {
         return resolveType(field.type, project)
     }
 
-    fun resolveMethodReturnType(method: PsiMethod, project: Project): PsiClass? {
+    private fun resolveMethodReturnType(method: PsiMethod, project: Project): PsiClass? {
         return resolveType(method.returnType ?: return null, project)
     }
 

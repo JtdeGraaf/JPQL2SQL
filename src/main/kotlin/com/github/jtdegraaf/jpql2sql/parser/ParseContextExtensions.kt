@@ -1,7 +1,7 @@
 package com.github.jtdegraaf.jpql2sql.parser
 
 /**
- * Extension functions for [ParseContext] that provide common parsing utilities
+ * Extension functions for ParseContext that provide common parsing utilities
  * shared across different clause parsers.
  */
 

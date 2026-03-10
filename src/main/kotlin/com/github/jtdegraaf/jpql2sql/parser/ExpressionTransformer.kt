@@ -85,7 +85,7 @@ object ExpressionTransformer {
      * @param predicate A function that returns true for expressions to collect
      * @return List of matching expressions
      */
-    fun collect(expr: Expression, predicate: (Expression) -> Boolean): List<Expression> {
+    private fun collect(expr: Expression, predicate: (Expression) -> Boolean): List<Expression> {
         val result = mutableListOf<Expression>()
         collectInternal(expr, predicate, result)
         return result

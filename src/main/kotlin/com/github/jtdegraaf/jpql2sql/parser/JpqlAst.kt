@@ -113,7 +113,6 @@ sealed class Expression : JpqlNode()
 data class PathExpression(
     val parts: List<String>
 ) : Expression() {
-    val root: String get() = parts.first()
     val path: String get() = parts.joinToString(".")
 }
 
@@ -235,7 +234,7 @@ data class ExtractExpression(
 enum class TrimMode { BOTH, LEADING, TRAILING }
 
 /**
- * Represents TRIM([LEADING|TRAILING|BOTH] [char] FROM source) expression.
+ * Represents TRIM expression with optional mode, trim character, and source.
  */
 data class TrimExpression(
     val mode: TrimMode,

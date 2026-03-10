@@ -2,7 +2,6 @@ package com.github.jtdegraaf.jpql2sql.parser
 
 class JpqlLexer(private val input: String) {
     private var pos = 0
-    private var current: Token? = null
 
     val tokens: List<Token> by lazy { tokenizeAll() }
 
@@ -296,7 +295,7 @@ enum class TokenCategory {
     SPECIAL
 }
 
-enum class TokenType(val category: TokenCategory) {
+enum class TokenType(private val category: TokenCategory) {
     // Keywords
     SELECT(TokenCategory.KEYWORD),
     DISTINCT(TokenCategory.KEYWORD),
@@ -470,16 +469,6 @@ enum class TokenType(val category: TokenCategory) {
      * Returns true if this is ROW or ROWS keyword.
      */
     fun isRowKeyword(): Boolean = this == ROW || this == ROWS
-
-    /**
-     * Returns true if this is a value literal (string, number, boolean, null).
-     */
-    fun isValueLiteral(): Boolean = this in VALUE_LITERALS
-
-    /**
-     * Returns true if this is a parameter token (named or positional).
-     */
-    fun isParameter(): Boolean = this == NAMED_PARAM || this == POSITIONAL_PARAM
 
     /**
      * Returns true if this is a structural JPQL clause keyword that should not

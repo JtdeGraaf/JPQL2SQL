@@ -52,34 +52,6 @@ interface ExpressionVisitor<T> {
     fun visitType(expr: TypeExpression): T
     fun visitUnparsed(expr: UnparsedFragment): T
 }
-
-/**
- * Abstract base class for expression visitors that provides default implementations
- * returning a common default value. Subclasses can override only the methods they need.
- *
- * @param T The return type of the visitor methods
- * @param defaultValue The value to return for unhandled expressions
- */
-abstract class DefaultExpressionVisitor<T>(private val defaultValue: T) : ExpressionVisitor<T> {
-    override fun visitPath(expr: PathExpression): T = defaultValue
-    override fun visitBinary(expr: BinaryExpression): T = defaultValue
-    override fun visitUnary(expr: UnaryExpression): T = defaultValue
-    override fun visitLiteral(expr: LiteralExpression): T = defaultValue
-    override fun visitParameter(expr: ParameterExpression): T = defaultValue
-    override fun visitFunctionCall(expr: FunctionCallExpression): T = defaultValue
-    override fun visitCase(expr: CaseExpression): T = defaultValue
-    override fun visitSubquery(expr: SubqueryExpression): T = defaultValue
-    override fun visitInList(expr: InListExpression): T = defaultValue
-    override fun visitBetween(expr: BetweenExpression): T = defaultValue
-    override fun visitAggregate(expr: AggregateExpression): T = defaultValue
-    override fun visitExists(expr: ExistsExpression): T = defaultValue
-    override fun visitCast(expr: CastExpression): T = defaultValue
-    override fun visitExtract(expr: ExtractExpression): T = defaultValue
-    override fun visitTrim(expr: TrimExpression): T = defaultValue
-    override fun visitType(expr: TypeExpression): T = defaultValue
-    override fun visitUnparsed(expr: UnparsedFragment): T = defaultValue
-}
-
 /**
  * Visitor for collecting expressions into a mutable list.
  * Override methods to add expressions to the [collected] list.
@@ -131,15 +103,4 @@ abstract class CollectingExpressionVisitor : ExpressionVisitor<Unit> {
     }
     override fun visitType(expr: TypeExpression) {}
     override fun visitUnparsed(expr: UnparsedFragment) {}
-}
-
-/**
- * A visitor that collects all PathExpressions from an expression tree.
- */
-class PathCollector : CollectingExpressionVisitor() {
-    override fun visitPath(expr: PathExpression) {
-        collected.add(expr)
-    }
-
-    fun collectPaths(): List<PathExpression> = collected.filterIsInstance<PathExpression>()
 }

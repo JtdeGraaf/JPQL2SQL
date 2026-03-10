@@ -76,11 +76,6 @@ object JpaAnnotations {
         "javax.persistence.EmbeddedId"
     )
 
-    val ID_CLASS = listOf(
-        "jakarta.persistence.IdClass",
-        "javax.persistence.IdClass"
-    )
-
     val SUBSELECT = listOf(
         "org.hibernate.annotations.Subselect"
     )
@@ -103,11 +98,6 @@ object JpaAnnotations {
     val CONVERT = listOf(
         "jakarta.persistence.Convert",
         "javax.persistence.Convert"
-    )
-
-    val CONVERTER = listOf(
-        "jakarta.persistence.Converter",
-        "javax.persistence.Converter"
     )
 }
 

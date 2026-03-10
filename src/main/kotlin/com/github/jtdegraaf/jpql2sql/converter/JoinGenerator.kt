@@ -43,7 +43,7 @@ class JoinGenerator(
      * @param baseName The base name for the alias (typically the field name)
      * @return A unique alias string
      */
-    fun generateAlias(baseName: String): String {
+    private fun generateAlias(baseName: String): String {
         aliasCounter++
         return "${baseName}_$aliasCounter"
     }
@@ -68,60 +68,6 @@ class JoinGenerator(
             alias = newAlias,
             condition = null
         )
-    }
-
-    /**
-     * Checks if accessing fieldName on an entity requires a JOIN.
-     *
-     * Returns false for:
-     * - Embedded fields (they're part of the same table)
-     * - FK ID access optimization (e.g., u.department.id -> u.department_id)
-     *
-     * @param entityName The entity containing the field
-     * @param fieldName The field being accessed
-     * @param isIdAccess True if accessing .id on the relationship (FK optimization)
-     * @return True if a JOIN is required
-     */
-    fun requiresJoin(entityName: String, fieldName: String, isIdAccess: Boolean): Boolean {
-        // Embedded fields don't need JOINs - they're part of the same table
-        if (entityResolver.isEmbeddedField(entityName, fieldName)) return false
-
-        // Check if this is a relationship field
-        if (!entityResolver.isRelationshipField(entityName, fieldName)) return false
-
-        // FK optimization: accessing .id on a single-valued association doesn't need a JOIN
-        // because the FK column already contains the ID value
-        if (isIdAccess) {
-            val targetEntity = entityResolver.resolveTargetEntityName(entityName, fieldName)
-            if (targetEntity != null && entityResolver.isPrimaryKeyField(targetEntity, "id")) {
-                return false
-            }
-        }
-
-        return true
-    }
-
-    /**
-     * Checks if the given field is the last part of a path and accessing it
-     * as .id would allow FK optimization (no JOIN needed).
-     *
-     * @param entityName The current entity
-     * @param fieldName The relationship field
-     * @param nextField The next field in the path (should be "id" for optimization)
-     * @param isNextFieldLast True if nextField is the last part of the path
-     * @return True if FK optimization applies
-     */
-    fun canOptimizeFkAccess(
-        entityName: String,
-        fieldName: String,
-        nextField: String?,
-        isNextFieldLast: Boolean
-    ): Boolean {
-        if (nextField == null || !isNextFieldLast) return false
-        if (!entityResolver.isRelationshipField(entityName, fieldName)) return false
-
-        val targetEntity = entityResolver.resolveTargetEntityName(entityName, fieldName) ?: return false
-        return entityResolver.isPrimaryKeyField(targetEntity, nextField)
     }
 
     /**

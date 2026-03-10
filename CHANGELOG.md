@@ -93,8 +93,7 @@
 - Named (`:param`) and positional (`?1`) parameter preservation
 - Configurable SQL dialect under Settings > Tools > JPQL to SQL
 
-[Unreleased]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.4.0...HEAD
-[1.4.0]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.3.0...1.4.0
+[Unreleased]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.3.0...HEAD
 [1.3.0]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.2.0...1.3.0
 [1.2.0]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.1.0...1.2.0
 [1.1.0]: https://github.com/JtdeGraaf/JPQL2SQL/compare/1.0.3...1.1.0

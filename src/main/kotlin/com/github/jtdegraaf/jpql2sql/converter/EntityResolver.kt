@@ -62,7 +62,7 @@ open class EntityResolver(private val project: Project?) {
         val psiClass = findEntity(parentEntityName) ?: return null
         val members = PsiUtils.findAnnotatedMembers(psiClass, fieldName)
         if (members.isEmpty()) return null
-        val targetClass = PsiUtils.resolveMemberType(members, project!!) ?: return null
+        val targetClass = PsiUtils.resolveMemberType(members, project) ?: return null
         return targetClass.name
     }
 

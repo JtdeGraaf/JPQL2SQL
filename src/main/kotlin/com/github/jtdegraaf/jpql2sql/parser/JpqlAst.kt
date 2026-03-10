@@ -31,7 +31,7 @@ data class ConstructorProjection(
     val arguments: List<Expression>
 ) : Projection()
 
-object CountAllProjection : Projection()
+data object CountAllProjection : Projection()
 
 data class AggregateProjection(
     val function: AggregateFunction,

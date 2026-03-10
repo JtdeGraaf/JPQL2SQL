@@ -73,7 +73,7 @@ class ExpressionConverter(
     private fun convertBinary(expr: BinaryExpression): String {
         // Special handling for TYPE() comparisons
         if (expr.left is TypeExpression && (expr.operator == BinaryOperator.EQUALS || expr.operator == BinaryOperator.NOT_EQUALS)) {
-            return convertTypeComparison(expr.left as TypeExpression, expr.operator, expr.right)
+            return convertTypeComparison(expr.left, expr.operator, expr.right)
         }
 
         // Special handling for AttributeConverter boolean conversions
@@ -236,12 +236,16 @@ class ExpressionConverter(
      */
     private fun tryConvertWithAttributeConverter(expr: BinaryExpression): String? {
         // Check if one side is a path and the other is a literal
-        val (pathExpr, literal) = when {
+        val pathExpr: PathExpression
+        val literal: LiteralExpression
+        when {
             expr.left is PathExpression && expr.right is LiteralExpression -> {
-                expr.left as PathExpression to expr.right as LiteralExpression
+                pathExpr = expr.left
+                literal = expr.right
             }
             expr.right is PathExpression && expr.left is LiteralExpression -> {
-                expr.right as PathExpression to expr.left as LiteralExpression
+                pathExpr = expr.right
+                literal = expr.left
             }
             else -> return null
         }

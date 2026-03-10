@@ -256,7 +256,7 @@ class CopyAsNativeQueryAction : AnAction() {
 
     private fun extractJpqlFromAnnotation(annotation: PsiAnnotation): String? {
         // Try "value" attribute first
-        var value = annotation.findAttributeValue("value")
+        val value = annotation.findAttributeValue("value")
             ?: annotation.findAttributeValue(null) // unnamed attribute
 
         if (value == null) {

@@ -36,7 +36,7 @@ class AttributeConverterResolver(private val project: Project?) {
      */
     private sealed class InvocationResult {
         data class Success(val value: Any?) : InvocationResult()
-        object Failure : InvocationResult()
+        data object Failure : InvocationResult()
     }
 
     /**
@@ -174,7 +174,7 @@ class AttributeConverterResolver(private val project: Project?) {
         if (ifStringMatch != null) {
             val trueVal = ifStringMatch.groupValues[1]
             // Find return statement after the if block (handles }return and standalone return)
-            val elseStringPattern = Regex("""(?:\}\s*return|;\s*return|else\s*\{?\s*return)\s*["']([^"']+)["']""")
+            val elseStringPattern = Regex("""(?:}\s*return|;\s*return|else\s*\{?\s*return)\s*["']([^"']+)["']""")
             val elseMatch = elseStringPattern.find(body.substring(ifStringMatch.range.last))
             if (elseMatch != null) {
                 val falseVal = elseMatch.groupValues[1]
@@ -194,7 +194,7 @@ class AttributeConverterResolver(private val project: Project?) {
         val ifNumericMatch = ifNumericPattern.find(body)
         if (ifNumericMatch != null) {
             val trueVal = ifNumericMatch.groupValues[1]
-            val elseNumericPattern = Regex("""(?:\}\s*return|;\s*return|else\s*\{?\s*return)\s*(\d+)""")
+            val elseNumericPattern = Regex("""(?:}\s*return|;\s*return|else\s*\{?\s*return)\s*(\d+)""")
             val elseMatch = elseNumericPattern.find(body.substring(ifNumericMatch.range.last))
             if (elseMatch != null) {
                 val falseVal = elseMatch.groupValues[1]

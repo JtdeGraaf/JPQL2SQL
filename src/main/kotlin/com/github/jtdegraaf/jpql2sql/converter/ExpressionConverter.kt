@@ -133,6 +133,7 @@ class ExpressionConverter(
     }
 
     private fun convertParameter(expr: ParameterExpression): String = when {
+        expr.spel != null -> expr.spel
         expr.name != null -> ":${expr.name}"
         expr.position != null -> "?${expr.position}"
         else -> "?"

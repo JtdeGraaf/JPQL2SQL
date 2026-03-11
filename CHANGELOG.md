@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- SpEL (Spring Expression Language) parameter support: `:#{#paramName}`, `?#{[0]}`, `#{#entityName}`
+
 ## [1.4.0]
 
 ### Changed

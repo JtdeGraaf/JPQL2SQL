@@ -119,4 +119,51 @@ class JpqlLexerTest {
         assertEquals(TokenType.MIN, tokens[3].type)
         assertEquals(TokenType.MAX, tokens[4].type)
     }
+
+    @Test
+    fun testSpelNamedParameter() {
+        val lexer = JpqlLexer("WHERE id = :#{#userId}")
+        val tokens = lexer.tokens
+
+        assertEquals(TokenType.SPEL_PARAM, tokens[3].type)
+        assertEquals(":#{#userId}", tokens[3].text)
+    }
+
+    @Test
+    fun testSpelPositionalParameter() {
+        val lexer = JpqlLexer("WHERE id = ?#{[0]}")
+        val tokens = lexer.tokens
+
+        assertEquals(TokenType.SPEL_PARAM, tokens[3].type)
+        assertEquals("?#{[0]}", tokens[3].text)
+    }
+
+    @Test
+    fun testSpelStandaloneParameter() {
+        val lexer = JpqlLexer("FROM #{#entityName} e")
+        val tokens = lexer.tokens
+
+        assertEquals(TokenType.FROM, tokens[0].type)
+        assertEquals(TokenType.SPEL_PARAM, tokens[1].type)
+        assertEquals("#{#entityName}", tokens[1].text)
+        assertEquals(TokenType.IDENTIFIER, tokens[2].type)
+    }
+
+    @Test
+    fun testSpelWithPropertyAccessor() {
+        val lexer = JpqlLexer("WHERE owner = :#{#authentication.principal.username}")
+        val tokens = lexer.tokens
+
+        assertEquals(TokenType.SPEL_PARAM, tokens[3].type)
+        assertEquals(":#{#authentication.principal.username}", tokens[3].text)
+    }
+
+    @Test
+    fun testSpelWithNestedBraces() {
+        val lexer = JpqlLexer("WHERE type IN :#{T(com.example.Type).values()}")
+        val tokens = lexer.tokens
+
+        assertEquals(TokenType.SPEL_PARAM, tokens[3].type)
+        assertEquals(":#{T(com.example.Type).values()}", tokens[3].text)
+    }
 }

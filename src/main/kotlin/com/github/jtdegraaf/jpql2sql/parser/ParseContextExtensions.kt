@@ -44,7 +44,8 @@ fun ParseContext.parseLiteralExpression(): LiteralExpression? = when {
 }
 
 /**
- * Parses a parameter expression (named :param or positional ?1).
+ * Parses a parameter expression (named :param, positional ?1, or SpEL expression).
+ * SpEL expressions include: :#{#paramName}, ?#{[0]}, #{#entityName}
  * @return The parsed [ParameterExpression] or null if current token is not a parameter
  */
 fun ParseContext.parseParameterExpression(): ParameterExpression? = when {
@@ -57,6 +58,11 @@ fun ParseContext.parseParameterExpression(): ParameterExpression? = when {
         val position = current.text.toIntOrNull() ?: 0
         advance()
         ParameterExpression(null, position)
+    }
+    check(TokenType.SPEL_PARAM) -> {
+        val spel = current.text
+        advance()
+        ParameterExpression(null, null, spel)
     }
     else -> null
 }

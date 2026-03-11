@@ -154,7 +154,8 @@ enum class LiteralType {
 
 data class ParameterExpression(
     val name: String?,
-    val position: Int?
+    val position: Int?,
+    val spel: String? = null
 ) : Expression()
 
 data class FunctionCallExpression(

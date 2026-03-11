@@ -17,56 +17,57 @@ Supports PostgreSQL, MySQL, Oracle, SQL Server, and H2. Configure your dialect u
 
 ## Supported Features
 
-| Category | Feature | Status |
-|----------|---------|--------|
-| **JPQL Clauses** | SELECT, FROM, WHERE | Yes |
-| | JOIN (INNER, LEFT, RIGHT) | Yes |
-| | FULL OUTER JOIN, CROSS JOIN | Yes |
-| | GROUP BY, HAVING | Yes |
-| | ORDER BY (ASC, DESC, NULLS FIRST/LAST) | Yes |
-| | Subqueries | Yes |
-| | UNION, INTERSECT, EXCEPT (with ALL) | Yes |
-| **Expressions** | Comparison operators (=, <>, <, >, <=, >=) | Yes |
-| | Logical operators (AND, OR, NOT) | Yes |
-| | Arithmetic operators (+, -, *, /) | Yes |
-| | String concatenation (\|\|) | Yes |
-| | BETWEEN, IN, LIKE, IS NULL | Yes |
-| | CASE WHEN expressions | Yes |
-| | EXISTS, NOT EXISTS | Yes |
-| | Constructor expressions (SELECT NEW) | Yes |
-| **Functions** | Aggregate (COUNT, SUM, AVG, MIN, MAX) | Yes |
-| | String (CONCAT, SUBSTRING, UPPER, LOWER, TRIM, LENGTH, LOCATE) | Yes |
-| | Math (ABS, SQRT, MOD) | Yes |
-| | Date/Time (CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP) | Yes |
-| | EXTRACT(field FROM date) | Yes |
-| | Enhanced TRIM (LEADING/TRAILING/BOTH char FROM) | Yes |
-| | CAST(expr AS type) | Yes |
-| | COALESCE, NULLIF | Yes |
-| | FUNCTION('native_name', args) | Yes |
-| | TYPE(alias) for polymorphic queries | Yes |
-| **JPA Annotations** | @Entity, @Table | Yes |
-| | @Column | Yes |
-| | @Id, @GeneratedValue | Yes |
-| | @ManyToOne, @OneToOne, @OneToMany, @ManyToMany | Yes |
-| | @JoinColumn, @JoinTable | Yes |
-| | @Embedded, @EmbeddedId, @Embeddable | Yes |
-| | @AttributeOverride, @AttributeOverrides | Yes |
-| | @IdClass (composite keys) | Yes |
-| | @Inheritance (SINGLE_TABLE strategy) | Yes |
-| | @DiscriminatorColumn, @DiscriminatorValue | Yes |
-| | @Convert, @Converter (AttributeConverter) | Yes |
-| | @Subselect (Hibernate) | Yes |
-| **Parameters** | Named parameters (:param) | Yes |
-| | Positional parameters (?1) | Yes |
-| | Collection-valued parameters (IN :collection) | Yes |
-| **Spring Data JPA** | Derived query methods (findBy, countBy, etc.) | Yes |
-| | Implicit JOIN generation for nested properties | Yes |
-| | FK optimization (no JOIN for .id access) | Yes |
-| **Dialects** | PostgreSQL | Yes |
-| | MySQL | Yes |
-| | Oracle | Yes |
-| | SQL Server | Yes |
-| | H2 | Yes |
+| Category | Feature |
+|----------|---------|
+| **JPQL Clauses** | SELECT, FROM, WHERE |
+| | JOIN (INNER, LEFT, RIGHT) |
+| | FULL OUTER JOIN, CROSS JOIN |
+| | GROUP BY, HAVING |
+| | ORDER BY (ASC, DESC, NULLS FIRST/LAST) |
+| | Subqueries |
+| | UNION, INTERSECT, EXCEPT (with ALL) |
+| **Expressions** | Comparison operators (=, <>, <, >, <=, >=) |
+| | Logical operators (AND, OR, NOT) |
+| | Arithmetic operators (+, -, *, /) |
+| | String concatenation (\|\|) |
+| | BETWEEN, IN, LIKE, IS NULL |
+| | CASE WHEN expressions |
+| | EXISTS, NOT EXISTS |
+| | Constructor expressions (SELECT NEW) |
+| **Functions** | Aggregate (COUNT, SUM, AVG, MIN, MAX) |
+| | String (CONCAT, SUBSTRING, UPPER, LOWER, TRIM, LENGTH, LOCATE) |
+| | Math (ABS, SQRT, MOD) |
+| | Date/Time (CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP) |
+| | EXTRACT(field FROM date) |
+| | Enhanced TRIM (LEADING/TRAILING/BOTH char FROM) |
+| | CAST(expr AS type) |
+| | COALESCE, NULLIF |
+| | FUNCTION('native_name', args) |
+| | TYPE(alias) for polymorphic queries |
+| **JPA Annotations** | @Entity, @Table |
+| | @Column |
+| | @Id, @GeneratedValue |
+| | @ManyToOne, @OneToOne, @OneToMany, @ManyToMany |
+| | @JoinColumn, @JoinTable |
+| | @Embedded, @EmbeddedId, @Embeddable |
+| | @AttributeOverride, @AttributeOverrides |
+| | @IdClass (composite keys) |
+| | @Inheritance (SINGLE_TABLE strategy) |
+| | @DiscriminatorColumn, @DiscriminatorValue |
+| | @Convert, @Converter (AttributeConverter) |
+| | @Subselect (Hibernate) |
+| **Parameters** | Named parameters (:param) |
+| | Positional parameters (?1) |
+| | Collection-valued parameters (IN :collection) |
+| | SpEL expressions (:#{...}, ?#{...}, #{...}) |
+| **Spring Data JPA** | Derived query methods (findBy, countBy, etc.) |
+| | Implicit JOIN generation for nested properties |
+| | FK optimization (no JOIN for .id access) |
+| **Dialects** | PostgreSQL |
+| | MySQL |
+| | Oracle |
+| | SQL Server |
+| | H2 |
 
 ## Not Yet Supported
 

@@ -28,6 +28,7 @@ class JpqlLexer(private val input: String) {
 
         return when {
             c == '\'' -> readStringLiteral()
+            c == '#' && pos + 1 < input.length && input[pos + 1] == '{' -> readSpelExpression()
             c == ':' -> readNamedParameter()
             c == '?' -> readPositionalParameter()
             c.isDigit() || (c == '-' && pos + 1 < input.length && input[pos + 1].isDigit()) -> readNumber()
@@ -61,6 +62,12 @@ class JpqlLexer(private val input: String) {
     private fun readNamedParameter(): Token {
         val start = pos
         pos++ // skip ':'
+        // Check for SpEL expression: :#{...}
+        if (pos < input.length && input[pos] == '#' && pos + 1 < input.length && input[pos + 1] == '{') {
+            pos++ // skip '#'
+            val spelContent = readSpelContent()
+            return Token(TokenType.SPEL_PARAM, ":#$spelContent", start)
+        }
         val name = buildString {
             while (pos < input.length && (input[pos].isLetterOrDigit() || input[pos] == '_')) {
                 append(input[pos++])
@@ -72,12 +79,55 @@ class JpqlLexer(private val input: String) {
     private fun readPositionalParameter(): Token {
         val start = pos
         pos++ // skip '?'
+        // Check for SpEL expression: ?#{...}
+        if (pos < input.length && input[pos] == '#' && pos + 1 < input.length && input[pos + 1] == '{') {
+            pos++ // skip '#'
+            val spelContent = readSpelContent()
+            return Token(TokenType.SPEL_PARAM, "?#$spelContent", start)
+        }
         val num = buildString {
             while (pos < input.length && input[pos].isDigit()) {
                 append(input[pos++])
             }
         }
         return Token(TokenType.POSITIONAL_PARAM, num, start)
+    }
+
+    /**
+     * Reads a standalone SpEL expression: #{...}
+     * Used for entity name placeholders like #{#entityName}
+     */
+    private fun readSpelExpression(): Token {
+        val start = pos
+        pos++ // skip '#'
+        val spelContent = readSpelContent()
+        return Token(TokenType.SPEL_PARAM, "#$spelContent", start)
+    }
+
+    /**
+     * Reads the content inside a SpEL expression braces.
+     * Handles nested braces and property accessors like #customer.firstname.
+     * Returns the content including the surrounding braces.
+     */
+    private fun readSpelContent(): String {
+        val sb = StringBuilder()
+        var braceDepth = 0
+        while (pos < input.length) {
+            val c = input[pos]
+            sb.append(c)
+            when (c) {
+                '{' -> braceDepth++
+                '}' -> {
+                    braceDepth--
+                    if (braceDepth == 0) {
+                        pos++
+                        return sb.toString()
+                    }
+                }
+            }
+            pos++
+        }
+        return sb.toString()
     }
 
     private fun readNumber(): Token {
@@ -420,6 +470,7 @@ enum class TokenType(private val category: TokenCategory) {
     NUMBER_LITERAL(TokenCategory.LITERAL),
     NAMED_PARAM(TokenCategory.LITERAL),
     POSITIONAL_PARAM(TokenCategory.LITERAL),
+    SPEL_PARAM(TokenCategory.LITERAL),
 
     // Special
     END_OF_FILE(TokenCategory.SPECIAL),

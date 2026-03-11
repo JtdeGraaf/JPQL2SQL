@@ -99,9 +99,16 @@ class SelectClauseParser(
     }
 
     private fun finalizeAggregate(func: AggregateFunction, distinct: Boolean, expression: Expression): Projection {
+        val aggExpr = AggregateExpression(func, distinct, expression)
+
+        // Check if aggregate is part of arithmetic (e.g., SUM(x) * 2)
+        if (ctx.current.type.isArithmeticOperator()) {
+            val fullExpr = parseRemainingArithmetic(aggExpr)
+            return FieldProjection(fullExpr, ctx.parseOptionalAlias())
+        }
+
         // Check if aggregate is part of a comparison (e.g., COUNT(*) > 0)
         if (ctx.current.type.isComparisonOperator()) {
-            val aggExpr = AggregateExpression(func, distinct, expression)
             val fullExpr = parseRemainingComparison(aggExpr)
             return FieldProjection(fullExpr, ctx.parseOptionalAlias())
         }
@@ -139,11 +146,26 @@ class SelectClauseParser(
             val op = ctx.tryParseArithmeticOperator() ?: break
             val right = when {
                 ctx.check(TokenType.LEFT_PARENTHESES) -> expr.parseExpression()
+                ctx.current.type.isAggregate() -> parseAggregateAsExpression()
                 else -> ctx.parseLiteralExpression() ?: expr.parsePathExpression()
             }
             result = BinaryExpression(result, op, right)
         }
         return result
+    }
+
+    private fun parseAggregateAsExpression(): AggregateExpression {
+        val func = ctx.parseAggregateFunction()
+        return ctx.parseInParentheses {
+            if (func == AggregateFunction.COUNT && ctx.check(TokenType.STAR)) {
+                ctx.advance()
+                AggregateExpression(func, false, PathExpression(listOf("*")))
+            } else {
+                val distinct = ctx.match(TokenType.DISTINCT)
+                val expression = expr.parseExpression()
+                AggregateExpression(func, distinct, expression)
+            }
+        }
     }
 
     private fun parseRemainingComparison(left: Expression): Expression {

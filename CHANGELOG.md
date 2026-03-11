@@ -8,6 +8,10 @@
 
 - SpEL (Spring Expression Language) parameter support: `:#{#paramName}`, `?#{[0]}`, `#{#entityName}`
 
+### Fixed
+
+- Arithmetic expressions with aggregates now parse correctly (e.g., `SUM(x) * 2`, `price * COUNT(items)`)
+
 ## [1.4.0]
 
 ### Changed

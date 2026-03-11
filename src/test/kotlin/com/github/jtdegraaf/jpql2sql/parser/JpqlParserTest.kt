@@ -283,4 +283,40 @@ class JpqlParserTest {
         assertNotNull(query.having)
         assertNotNull(query.orderBy)
     }
+
+    @Test
+    fun testArithmeticWithAggregate() {
+        val query = JpqlParser("SELECT 1 * SUM(o.amount) FROM Order o").parse()
+
+        assertEquals(1, query.select.projections.size)
+        val projection = query.select.projections[0] as FieldProjection
+        val expr = projection.path as BinaryExpression
+        assertEquals(BinaryOperator.MULTIPLY, expr.operator)
+        assertTrue(expr.left is LiteralExpression)
+        assertTrue(expr.right is AggregateExpression)
+    }
+
+    @Test
+    fun testAggregateTimesLiteral() {
+        val query = JpqlParser("SELECT SUM(o.amount) * 2 FROM Order o").parse()
+
+        assertEquals(1, query.select.projections.size)
+        val projection = query.select.projections[0] as FieldProjection
+        val expr = projection.path as BinaryExpression
+        assertEquals(BinaryOperator.MULTIPLY, expr.operator)
+        assertTrue(expr.left is AggregateExpression)
+        assertTrue(expr.right is LiteralExpression)
+    }
+
+    @Test
+    fun testPathTimesAggregate() {
+        val query = JpqlParser("SELECT o.price * COUNT(o.items) FROM Order o").parse()
+
+        assertEquals(1, query.select.projections.size)
+        val projection = query.select.projections[0] as FieldProjection
+        val expr = projection.path as BinaryExpression
+        assertEquals(BinaryOperator.MULTIPLY, expr.operator)
+        assertTrue(expr.left is PathExpression)
+        assertTrue(expr.right is AggregateExpression)
+    }
 }

@@ -10,10 +10,11 @@ import com.intellij.psi.PsiMethod
  * `@ManyToOne` / `@OneToOne` relationships, producing [JoinInfo] used when
  * generating SQL JOIN clauses.
  */
-class JoinInfoResolver(
+class JoinInfoResolver @JvmOverloads constructor(
     private val project: Project,
     private val entityFinder: EntityFinder,
-    private val tableResolver: TableResolver
+    private val tableResolver: TableResolver,
+    private val pkColumnResolver: (String) -> String = { "id" }
 ) {
 
     fun resolve(entityName: String, fieldName: String): JoinInfo? {
@@ -25,7 +26,7 @@ class JoinInfoResolver(
         val getter = members.filterIsInstance<PsiMethod>().firstOrNull()
 
         // Check @JoinTable first (for @ManyToMany)
-        resolveJoinTable(members, fieldName, field, getter)?.let { return it }
+        resolveJoinTable(members, fieldName, field, getter, entityName)?.let { return it }
 
         // Check @OneToMany - resolve target table from collection generic type
         if (PsiUtils.hasAnyAnnotation(members, JpaAnnotations.ONE_TO_MANY)) {
@@ -33,7 +34,7 @@ class JoinInfoResolver(
             if (targetTable != null) {
                 return JoinInfo(
                     columnName = FkNamingUtils.entityFkColumnName(entityName),
-                    referencedColumnName = FkNamingUtils.DEFAULT_REFERENCED_COLUMN,
+                    referencedColumnName = pkColumnResolver(entityName),
                     targetTable = targetTable,
                     joinTable = null,
                     inverseColumnName = null,
@@ -42,10 +43,15 @@ class JoinInfoResolver(
             }
         }
 
+        // Resolve target entity for PK column lookup
+        val targetClass = PsiUtils.resolveMemberType(members, project)
+        val targetEntityName = targetClass?.name
+        val targetPkColumn = if (targetEntityName != null) pkColumnResolver(targetEntityName) else "id"
+
         // Check @JoinColumn
         val joinColName = JoinColumnResolver.findJoinColumnName(members)
-        val referencedCol = JoinColumnResolver.findReferencedColumnName(members) ?: FkNamingUtils.DEFAULT_REFERENCED_COLUMN
-        val targetTable = resolveTargetTable(members)
+        val referencedCol = JoinColumnResolver.findReferencedColumnName(members) ?: targetPkColumn
+        val targetTable = if (targetClass != null) tableResolver.resolve(targetClass) else null
 
         if (joinColName != null) {
             return JoinInfo(
@@ -60,7 +66,7 @@ class JoinInfoResolver(
         // Default
         return JoinInfo(
             columnName = FkNamingUtils.defaultFkColumnName(fieldName),
-            referencedColumnName = FkNamingUtils.DEFAULT_REFERENCED_COLUMN,
+            referencedColumnName = targetPkColumn,
             targetTable = targetTable ?: NamingUtils.toSnakeCase(fieldName),
             joinTable = null,
             inverseColumnName = null
@@ -71,7 +77,8 @@ class JoinInfoResolver(
         members: List<PsiMember>,
         fieldName: String,
         field: PsiField?,
-        getter: PsiMethod?
+        getter: PsiMethod?,
+        parentEntityName: String
     ): JoinInfo? {
         for (member in members) {
             for (fqn in JpaAnnotations.JOIN_TABLE) {
@@ -91,9 +98,14 @@ class JoinInfoResolver(
                 val targetTable = resolveTargetTableFromFieldOrGetter(field, getter)
                     ?: NamingUtils.toSnakeCase(fieldName)
 
+                // Resolve the target entity's PK column
+                val targetClass = PsiUtils.resolveMemberType(members, project)
+                val targetEntityName = targetClass?.name
+                val targetPkColumn = if (targetEntityName != null) pkColumnResolver(targetEntityName) else "id"
+
                 return JoinInfo(
                     columnName = joinColumnName,
-                    referencedColumnName = "id",
+                    referencedColumnName = targetPkColumn,
                     targetTable = targetTable,
                     joinTable = tableName,
                     inverseColumnName = inverseJoinColumnName

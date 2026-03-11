@@ -26,16 +26,34 @@ class JoinColumnResolver : ColumnResolver {
             return ColumnResolution.Resolved(joinColName)
         }
 
-        // Special case: accessing .id on a FK relationship (e.g., p.bot.id)
-        // This is equivalent to accessing the FK column itself (p.bot_id)
-        if (context.remainingPath == listOf("id")) {
-            return ColumnResolution.Resolved(joinColName)
+        // FK optimization: accessing the primary key of a relationship (e.g., p.bot.id)
+        // is equivalent to accessing the FK column itself (p.bot_id)
+        if (context.remainingPath.size == 1) {
+            val targetClass = PsiUtils.resolveMemberType(context.members, context.project)
+            if (targetClass != null && isTargetPrimaryKey(targetClass, context.remainingPath[0])) {
+                return ColumnResolution.Resolved(joinColName)
+            }
         }
 
         // Path continues into the target entity → navigate
         val targetClass = PsiUtils.resolveMemberType(context.members, context.project)
         val columnName = chain.resolve(targetClass, context.remainingPath, emptyList())
         return ColumnResolution.Resolved(columnName)
+    }
+
+    /**
+     * Checks if a field is the primary key of the target entity.
+     * Returns true if:
+     * 1. The field has @Id or @EmbeddedId annotation, OR
+     * 2. The field is named "id" (common convention fallback)
+     */
+    private fun isTargetPrimaryKey(targetClass: com.intellij.psi.PsiClass, fieldName: String): Boolean {
+        val members = PsiUtils.findAnnotatedMembers(targetClass, fieldName)
+        if (PsiUtils.hasAnyAnnotation(members, JpaAnnotations.ID)) {
+            return true
+        }
+        // Fallback: treat "id" as primary key even without annotation (common convention)
+        return fieldName.equals("id", ignoreCase = true)
     }
 
     private fun isSingleValuedAssociation(members: List<PsiMember>): Boolean {

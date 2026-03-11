@@ -5,7 +5,8 @@
       "WebSearch",
       "WebFetch(domain:plugins.jetbrains.com)",
       "Bash(find:*)",
-      "Bash(./gradlew test:*)"
+      "Bash(./gradlew test:*)",
+      "Bash(./gradlew clean test:*)"
     ]
   }
 }

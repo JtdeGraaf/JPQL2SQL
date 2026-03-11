@@ -21,7 +21,7 @@ open class EntityResolver(private val project: Project?) {
     private val entityFinder: EntityFinder? = project?.let { EntityFinder(it) }
     private val tableResolver = TableResolver()
     private val joinInfoResolver: JoinInfoResolver? = project?.let {
-        JoinInfoResolver(it, entityFinder!!, tableResolver)
+        JoinInfoResolver(it, entityFinder!!, tableResolver, ::resolvePrimaryKeyColumn)
     }
 
     /** Ordered chain of column resolvers — first match wins. */
@@ -113,6 +113,60 @@ open class EntityResolver(private val project: Project?) {
         if (members.isEmpty()) return false
 
         return PsiUtils.hasAnyAnnotation(members, JpaAnnotations.ID)
+    }
+
+    /**
+     * Resolves the primary key column name for an entity.
+     * Looks for the field with `@Id` annotation and returns its column name
+     * (from `@Column(name=...)` or snake_case of the field name).
+     *
+     * @return the PK column name, or "id" as fallback if not found
+     */
+    open fun resolvePrimaryKeyColumn(entityName: String): String {
+        if (project == null) return "id"
+        val psiClass = findEntity(entityName) ?: return "id"
+
+        // Find the field with @Id annotation
+        for (field in psiClass.allFields) {
+            val members = listOf(field)
+            if (PsiUtils.hasAnyAnnotation(members, JpaAnnotations.ID)) {
+                // Check for @Column(name = "...")
+                for (fqn in JpaAnnotations.COLUMN) {
+                    val annotation = PsiUtils.getAnnotation(field, fqn)
+                    if (annotation != null) {
+                        val name = PsiUtils.getAnnotationStringValue(annotation, "name")
+                        if (!name.isNullOrBlank()) return name
+                    }
+                }
+                // No @Column annotation, use snake_case of field name
+                return NamingUtils.toSnakeCase(field.name ?: "id")
+            }
+        }
+
+        // Also check methods (for getter-based @Id)
+        for (method in psiClass.allMethods) {
+            val members = listOf(method)
+            if (PsiUtils.hasAnyAnnotation(members, JpaAnnotations.ID)) {
+                // Extract field name from getter (e.g., getId -> id, getUserId -> userId)
+                val methodName = method.name
+                val fieldName = if (methodName.startsWith("get") && methodName.length > 3) {
+                    methodName.substring(3).replaceFirstChar { it.lowercase() }
+                } else {
+                    methodName
+                }
+                // Check for @Column on the method
+                for (fqn in JpaAnnotations.COLUMN) {
+                    val annotation = PsiUtils.getAnnotation(method, fqn)
+                    if (annotation != null) {
+                        val name = PsiUtils.getAnnotationStringValue(annotation, "name")
+                        if (!name.isNullOrBlank()) return name
+                    }
+                }
+                return NamingUtils.toSnakeCase(fieldName)
+            }
+        }
+
+        return "id" // Fallback
     }
 
     /**

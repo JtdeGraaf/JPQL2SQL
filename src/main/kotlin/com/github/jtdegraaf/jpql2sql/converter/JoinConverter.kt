@@ -64,10 +64,12 @@ class JoinConverter(
         // @JoinTable (many-to-many)
         if (joinInfo?.joinTable != null) {
             val parentAlias = join.path.parts[0]
+            val parentEntity = aliasToEntity[parentAlias]
+            val parentPkColumn = if (parentEntity != null) entityResolver.resolvePrimaryKeyColumn(parentEntity) else "id"
             val jtAlias = "${join.alias}_jt"
             return buildString {
                 append("$keyword ${joinInfo.joinTable} $jtAlias")
-                append(" ON $parentAlias.id = $jtAlias.${joinInfo.columnName}")
+                append(" ON $parentAlias.$parentPkColumn = $jtAlias.${joinInfo.columnName}")
                 append(" $keyword $tableName ${join.alias}")
                 append(" ON $jtAlias.${joinInfo.inverseColumnName} = ${join.alias}.${joinInfo.referencedColumnName}")
             }
@@ -76,7 +78,9 @@ class JoinConverter(
         // @OneToMany - join from child table back to parent
         if (joinInfo != null && joinInfo.isOneToMany) {
             val parentAlias = join.path.parts[0]
-            return "$keyword $tableName ${join.alias} ON ${join.alias}.${joinInfo.columnName} = $parentAlias.id"
+            val parentEntity = aliasToEntity[parentAlias]
+            val parentPkColumn = if (parentEntity != null) entityResolver.resolvePrimaryKeyColumn(parentEntity) else "id"
+            return "$keyword $tableName ${join.alias} ON ${join.alias}.${joinInfo.columnName} = $parentAlias.$parentPkColumn"
         }
 
         // Default FK-based condition
@@ -89,7 +93,10 @@ class JoinConverter(
             val parentAlias = path.parts[0]
             val fieldName = path.parts[1]
             val parentEntity = aliasToEntity[parentAlias]
-                ?: return FkNamingUtils.defaultJoinCondition(parentAlias, "id", alias, "id")
+
+            if (parentEntity == null) {
+                return FkNamingUtils.defaultJoinCondition(parentAlias, "id", alias, "id")
+            }
 
             val joinInfo = entityResolver.resolveJoinTable(parentEntity, fieldName)
             if (joinInfo != null) {
@@ -98,8 +105,12 @@ class JoinConverter(
                 )
             }
 
+            // Resolve the target entity's PK column
+            val targetEntity = entityResolver.resolveTargetEntityName(parentEntity, fieldName)
+            val targetPkColumn = if (targetEntity != null) entityResolver.resolvePrimaryKeyColumn(targetEntity) else "id"
+
             val fkColumn = FkNamingUtils.defaultFkColumnName(fieldName)
-            return FkNamingUtils.defaultJoinCondition(parentAlias, fkColumn, alias)
+            return FkNamingUtils.defaultJoinCondition(parentAlias, fkColumn, alias, targetPkColumn)
         }
         return FkNamingUtils.defaultJoinCondition(
             alias, "id", path.parts.firstOrNull() ?: "unknown", "id"

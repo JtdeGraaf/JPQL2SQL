@@ -11,6 +11,8 @@
 ### Fixed
 
 - Arithmetic expressions with aggregates now parse correctly (e.g., `SUM(x) * 2`, `price * COUNT(items)`)
+- FK optimization now works for any `@Id` field, not just fields named "id" (e.g., `u.department.userId` uses FK directly)
+- JOIN conditions now use actual PK column names from `@Id`/`@Column` annotations instead of hardcoded "id"
 
 ## [1.4.0]
 
